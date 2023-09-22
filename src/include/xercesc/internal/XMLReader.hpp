@@ -467,6 +467,18 @@ private:
     bool                        fNEL;
     XMLVersion                  fXMLVersion;
     MemoryManager*              fMemoryManager;
+    // start bisheng, add by bdg
+    XMLSize_t                   fTotalReadBytes;
+    inline void increaseTotalReadBytes(size_t addNum) {
+        fTotalReadBytes = fTotalReadBytes + addNum;
+    }
+    inline void resetTotalReadBytes() {
+        fTotalReadBytes = 0;
+    }
+public:
+    void printBuf();
+    size_t getTotalSizeOfContentHasRead();
+    // end bisheng
 };
 
 

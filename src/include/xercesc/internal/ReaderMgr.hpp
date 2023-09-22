@@ -194,6 +194,10 @@ public :
     virtual XMLFileLoc getLineNumber() const;
     virtual XMLFileLoc getColumnNumber() const;
 
+    // start bisheng, add by bdg
+    virtual void printBuf();
+    virtual size_t getTotalSizeOfContentHasRead();
+    // end bisheng
 
 private :
     // -----------------------------------------------------------------------

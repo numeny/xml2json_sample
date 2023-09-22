@@ -102,7 +102,9 @@ class XMLPARSER_EXPORT XMLElementDecl : public XSerializable, public XMemory
     static const unsigned int   fgPCDataElemId;
     static const XMLCh          fgPCDataElemName[];
 
-
+    // start bisheng, add by bdg
+    size_t fTotalSizeOfContentHasRead;
+    // end bisheng
 
     // -----------------------------------------------------------------------
     //  Destructor

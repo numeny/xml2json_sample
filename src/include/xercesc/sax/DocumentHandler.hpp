@@ -56,6 +56,11 @@ class Locator;
   * @see Locator#Locator
   * @see HandlerBase#HandlerBase
   */
+// start bisheng, add by bdg
+struct SAX_EXPORT HandlerExtraInfo {
+  size_t mTotalSizeOfContentHasRead = 0;
+};
+// end bisheng
 
 class SAX_EXPORT DocumentHandler
 {
@@ -136,6 +141,10 @@ public:
     *            wrapping another exception.
     */
     virtual void endElement(const XMLCh* const name) = 0;
+    // add start bisheng, modify by bdg
+    virtual void endElement2(const XMLCh* const name,
+        const HandlerExtraInfo& extraInfo) {}
+    // end bisheng
 
   /**
     * Receive notification of ignorable whitespace in element content.

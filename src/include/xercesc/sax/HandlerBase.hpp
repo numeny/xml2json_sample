@@ -110,6 +110,10 @@ public:
     * @see DocumentHandler#endElement
     */
     virtual void endElement(const XMLCh* const name);
+    // add start bisheng, add by bdg
+    virtual void endElement2(const XMLCh* const name,
+        const HandlerExtraInfo& extraInfo);
+    // end bisheng
 
   /**
     * Receive notification of ignorable whitespace in element content.
@@ -388,6 +392,13 @@ inline void HandlerBase::endDocument()
 inline void HandlerBase::endElement(const XMLCh* const)
 {
 }
+
+// add start bisheng, add by bdg
+inline void HandlerBase::endElement2(const XMLCh* const,
+        const HandlerExtraInfo& extraInfo)
+{
+}
+// end bisheng
 
 inline void HandlerBase::error(const SAXParseException&)
 {

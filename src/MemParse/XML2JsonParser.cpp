@@ -112,7 +112,11 @@ int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler) {
             << StrX(e.getMessage()) << "\n" << XERCES_STD_QUALIFIER endl;
         errorCode = -4;
     }
-
+    catch (const UserInterruption& e)
+    {
+        XERCES_STD_QUALIFIER cerr << "\nUserInterruption: " << e.mCode << XERCES_STD_QUALIFIER endl;
+        errorCode = 4;
+    }
 #if EnableParseTimeDuration
     if (!errorCount) {
         XERCES_STD_QUALIFIER cout << "\nFinished parsing: "

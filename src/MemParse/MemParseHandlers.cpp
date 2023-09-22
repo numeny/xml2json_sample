@@ -34,7 +34,7 @@ void MemParseHandlers::endDocument() {
     mJsonTransformer.endDocument();
 #endif
 }
-
+extern const char*  gXMLInMemBuf;
 // ---------------------------------------------------------------------------
 //  MemParseHandlers: Implementation of the SAX DocumentHandler interface
 // ---------------------------------------------------------------------------
@@ -49,6 +49,16 @@ void MemParseHandlers::endElement(const XMLCh* const name) {
 #if WithMyParser
     mJsonTransformer.endElement(name);
 #endif
+}
+
+void MemParseHandlers::endElement2(const XMLCh* const name, const HandlerExtraInfo& extraInfo)
+{
+    // throw UserInterruption();
+    // XMLCh fTotalSizeOfContentHasRead = name[0];
+    XMLCh fTotalSizeOfContentHasRead = extraInfo.mTotalSizeOfContentHasRead;
+    // std::cout << "MemParseHandlers::endElement: " << fTotalSizeOfContentHasRead << std::endl;
+    std::cout << "MemParseHandlers::endElement: " << gXMLInMemBuf[fTotalSizeOfContentHasRead] << std::endl;
+    printf("MemParseHandlers::endElement: %s\n\n\n", &gXMLInMemBuf[fTotalSizeOfContentHasRead]);
 }
 
 void MemParseHandlers::characters(

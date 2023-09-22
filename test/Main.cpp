@@ -20,7 +20,7 @@
 using namespace std;
 XERCES_CPP_NAMESPACE_USE
 
-static const char*  gXMLInMemBuf =
+const char*  gXMLInMemBuf =
 "\
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>\n\
 <worksheet xmlns='http://schemas.openxmlformats.org/spreadsheetml/2006/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xmlns:xdr='http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing' xmlns:x14='http://schemas.microsoft.com/office/spreadsheetml/2009/9/main' xmlns:mc='http://schemas.openxmlformats.org/markup-compatibility/2006' xmlns:etc='http://www.wps.cn/officeDocument/2017/etCustomData'>\n\
