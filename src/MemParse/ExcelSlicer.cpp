@@ -140,7 +140,7 @@ void ExcelSlicer::onParsedSliceData(bool isEnded) {
     // cout << "mCurrRowSlice: " << mCurrRowSlice << endl;
 
     if (mExcelSlicerListener != nullptr) {
-        mExcelSlicerListener->onParsedSliceData(*this, mCurrRowSlice, isEnded);
+        mExcelSlicerListener->onParsedShardData(*this, mCurrRowSlice, isEnded);
     }
     resetCurrSliceData();
 }

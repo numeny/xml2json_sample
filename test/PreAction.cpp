@@ -19,6 +19,13 @@ const std::wstring source_folder = L"/source_file/";
 const std::wstring result_folder = L"/trans_result/";
 const std::string compress_folder = "/compress_folder/";
 
+// string U_TO_UTF8(val) {
+//     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+//     std::string str = converter.to_bytes(wstr);
+//     return str;
+// }
+
+
 int writeFile() {
     std::ofstream outputFile("example.txt");
 
@@ -58,17 +65,17 @@ int writeXmlFile(const string& fileName, const string& fileContent) {
 
 #if defined(EMSCRIPTEN)
 
-emscripten::val getTransformFile(const string& fileFullPath,
+emscripten::val readAsJSON(const string& fileFullPath,
     const string& fileId, const string& relativePath,
     bool willSlice, int sliceType, unsigned int sliceSize, bool willSaveTransformResult) {
-    DurationTimer dt("getTransformFile: " + fileFullPath);
+    DurationTimer dt("readAsJSON: " + fileFullPath);
     string *jsonUtf8Str = new string();
     // readFileIntoString(*jsonUtf8Str, fileFullPath);
     int ret = GetFileContent(*jsonUtf8Str, fileFullPath, fileId,
         relativePath, willSlice, (SliceType)sliceType,
         sliceSize, willSaveTransformResult);
     if (ret) {
-        cerr << "Err: getTransformFile" << endl;
+        cerr << "Err: readAsJSON" << endl;
     }
     try {
         if (!std::filesystem::remove(fileFullPath)) {
@@ -139,9 +146,31 @@ void freeNativePointer(int nativePointer) {
   delete (void*)nativePointer;
 }
 
+// int deleteFile(const std::wstring &fileIdWstring) {
+//     string fileId = U_TO_UTF8(fileIdWstring);
+//     if (!fs::exists(fileId)/* && fs::is_directory(fileId)*/) {
+//         return 0;
+//     }
+//     int ret = 0;
+//     try {
+//         if (!fs::remove_all(fileId)) {
+//             ret = -1;
+//             std::cerr << "Err: remove_all:" << fileId << std::endl;
+//         }
+//     } catch (const std::exception& e) {
+//         ret = -1;
+//         std::cerr << "Err: remove_all:" << fileId << ", exception: " << e.what() << std::endl;
+//     }
+//     return ret;
+// }
+
+// void deleteFiles(const std::wstring &fileId){
+// 	NSDirectory::DeleteDirectory(result_folder+fileId);
+// }
+
 EMSCRIPTEN_BINDINGS(my_module22) {
   emscripten::function("writeXmlFile", &writeXmlFile);
-  emscripten::function("getTransformFile", &getTransformFile);
+  emscripten::function("readAsJSON", &readAsJSON);
   emscripten::function("getDocumentSectPrArray", &getDocumentSectPrArray);
   emscripten::function("getExcelSheetHeadAndTail", &getExcelSheetHeadAndTail);
   emscripten::function("freeNativeString", &freeNativeString);

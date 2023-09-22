@@ -23,7 +23,7 @@ public:
     virtual void onStartSheetDataElement(const ExcelSlicer& excelSlicer,
         const string& header, const string& simpleTail) {}
     virtual void onEndSheetDataElement(const ExcelSlicer& excelSlicer) {}
-    virtual void onParsedSliceData(const ExcelSlicer& excelSlicer,
+    virtual void onParsedShardData(const ExcelSlicer& excelSlicer,
         const string& slicedData, bool isEnded) {}
 };
 

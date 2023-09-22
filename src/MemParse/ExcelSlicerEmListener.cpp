@@ -20,10 +20,10 @@ EM_JS(void, endDocument, (const char *fileId, const char *relativePath), {
     onEndDocument(fileId, relativePath);
   }
 });
-EM_JS(void, parsedSliceData, (const char *fileId, const char *relativePath,
+EM_JS(void, parsedShardData, (const char *fileId, const char *relativePath,
   const char* slicedData, bool isEnded), {
-  if (typeof onParsedSliceData === "function") {
-    onParsedSliceData(fileId, relativePath, slicedData, isEnded);
+  if (typeof onParsedShardData === "function") {
+    onParsedShardData(fileId, relativePath, slicedData, isEnded);
   }
 });
 #endif
@@ -46,13 +46,13 @@ void ExcelSlicerEmListener::onEndDocument(const ExcelSlicer& excelSlicer) {
 #endif
 }
 
-void ExcelSlicerEmListener::onParsedSliceData(
+void ExcelSlicerEmListener::onParsedShardData(
     const ExcelSlicer& excelSlicer, const string& slicedData, bool isEnded) {
-    // cout << "ExcelSlicerEmListener::onParsedSliceData"
+    // cout << "ExcelSlicerEmListener::onParsedShardData"
     //   << ", slicedData:" << slicedData << ", \n isEnded: " << isEnded << endl;
 #if defined(EMSCRIPTEN)
     const ReadFileInfo &readFileInfo = excelSlicer.getReadFileInfo();
-    parsedSliceData(readFileInfo.mFileId.c_str(),
+    parsedShardData(readFileInfo.mFileId.c_str(),
       readFileInfo.mRelativePath.c_str(), slicedData.c_str(), isEnded);    
 #endif
 }

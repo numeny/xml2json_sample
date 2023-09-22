@@ -90,7 +90,7 @@ int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler) {
                 , gMemBufId + (gMemBufCnt++)
                 , false
             ));
-            // memBufIS->setCopyBufToStream(); // FIXME, performance
+            memBufIS->setCopyBufToStream(false); // not copy old buffer, use it directly, for performance
             parser->parse(*memBufIS);
         }
 #if EnableParseTimeDuration

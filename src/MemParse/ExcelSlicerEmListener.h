@@ -8,5 +8,5 @@ class ExcelSlicerEmListener : public ExcelSlicerListener {
 public:
     void onStartDocument(const ExcelSlicer& excelSlicer) override;
     void onEndDocument(const ExcelSlicer& excelSlicer) override;
-    void onParsedSliceData(const ExcelSlicer& excelSlicer, const string& slicedData, bool isEnded) override;
+    void onParsedShardData(const ExcelSlicer& excelSlicer, const string& slicedData, bool isEnded) override;
 };
