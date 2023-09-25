@@ -16,6 +16,7 @@ aux_source_directory(src/MemParse ALL_SRC)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdata-sections")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ASSERTIONS=1")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunused-command-line-argument")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
 
 macro(add_xml2json_dependency name)
   target_link_directories(${name} PUBLIC ${PROJECT_SOURCE_DIR}/lib)

@@ -19,11 +19,6 @@ XERCES_CPP_NAMESPACE_BEGIN
 class AttributeList;
 XERCES_CPP_NAMESPACE_END
 
-class UserInterruption {
-public:
-    int mCode = 99;
-};
-
 class MemParseHandlers : public HandlerBase
 {
 public:

@@ -14,14 +14,16 @@ Module.onRuntimeInitialized = function() {
 
 // console.log = function() {}
 
-// default row number for slice
-var DefaultSliceRowNum = 1;
-const SliceType_WordDocument = 0;
-const SliceType_ExcelSheetx = 1;
+// default row number for shard
+var DefaultShardRowNum = 1;
+const ShardType_WordDocument = 0;
+const ShardType_ExcelSheetx = 1;
 
 addEventListener("message", (message) => {
   var handlers = {
-    "getTransformFile": getTransformFile,
+    "readAsJSON": readAsJSON,
+    "readNextShard": readNextShard,
+    "shardingParse": shardingParse,
     "getDocumentSectPrArray": getDocumentSectPrArray,
     "getExcelSheetHeadAndTail": getExcelSheetHeadAndTail,
     "writeFile": writeFile,
@@ -51,25 +53,25 @@ function handleEscapedChars(content) {
     return content;
 }
 
-function getTransformFile(param) {
+function readAsJSON(param) {
     if (!param) {
-        console.error("Err: worker getTransformFile no param.");
+        console.error("Err: worker readAsJSON no param.");
         return;
     }
     if (!param?.relativePath.endsWith("\.xml")) {
         // FIXME, TODO
         return;
     }
-    let sliceInfo = getSliceInfo(param);
+    let shardInfo = getShardInfo(param);
     let fileContent;
     let ret;
     try {
-        ret = Module.getTransformFile(param.fileFullPath,
-            param.fileId, param.relativePath, param.willSlice,
-            param.sliceType, param.sliceRowNum, !param.willSlice && param.willSaveTransformResult);
+        ret = Module.readAsJSON(param.fileFullPath,
+            param.fileId, param.relativePath, param.willShard,
+            param.shardType, param.shardRowNum, !param.willShard && param.willSaveTransformResult);
         fileContent = ret.fileContent;
     } catch (error) {
-        console.error("Err: Module.getTransformFile param:",
+        console.error("Err: Module.readAsJSON param:",
             param, error.stack);
     }
     if (fileContent?.length > 0) {
@@ -83,10 +85,10 @@ function getTransformFile(param) {
         fileContent = {}
     }
     var response = {
-        command: "onGetTransformFileComplete",
+        command: "onReadAsJSONComplete",
         param: param,
         result: {
-            hasSlice: sliceInfo.willSlice,
+            hasShard: shardInfo.willShard,
             fileContent: fileContent,
         },
     }
@@ -94,7 +96,46 @@ function getTransformFile(param) {
     Module.freeNativeString(ret?.nativeStringPointer);
 }
 
-function classof(obj){
+function readNextShard(param) {
+    let fileContent;
+    let ret;
+    try {
+        console.log("worker readNextShard, param: ", param);
+        console.log("worker readNextShard, fileFullPath: ", param.fileFullPath);
+        console.log("worker readNextShard, shardType: ", param.shardType);
+        console.log("worker readNextShard, shardSize: ", param.shardSize);
+
+        ret = Module.readNextShard(param.fileFullPath,
+            param.shardType, param.shardSize);
+        fileContent = ret?.fileContent;
+    } catch (error) {
+        console.error("Err: Module.readNextShard param:",
+            param, error.stack);
+    }
+    if (fileContent?.length > 0) {
+        fileContent = new TextDecoder().decode(fileContent)
+        try {
+            fileContent = JSON.parse(fileContent)
+        } catch (err) {
+            console.error("parse json error: ", param, err, fileContent)
+        }
+    } else {
+        fileContent = {}
+    }
+
+    var response = {
+        command: "onReadNextShardComplete",
+        param: param,
+        result: {
+            fileContent: fileContent,
+            isShardEnded: !ret || !!ret?.isShardEnded,
+        },
+    }
+    postMessage(response);
+    Module.freeNativeString(ret?.nativeStringPointer);
+}
+
+function classof(obj) {
     if(typeof(obj)==="undefined")return "undefined";
     if(obj===null)return "Null";
     var res = Object.prototype.toString.call(obj).match(/^\[object\s(.*)\]$/)[1];
@@ -172,6 +213,53 @@ function getExcelSheetHeadAndTail(param) {
     Module.freeNativeString(ret?.nativeStringPointer);
 }
 
+function shardingParse(param) {
+    let shardType = getShardType(param);
+    let retRes = false;
+    let fileContent;
+    if (ShardType_WordDocument == shardType
+        || ShardType_ExcelSheetx == shardType) {
+        let ret;
+        try {
+            if (ShardType_WordDocument == shardType) {
+                ret = Module.getDocumentSectPrArray(param.fileFullPath);
+            } else if (ShardType_ExcelSheetx == shardType) {
+                ret = Module.getExcelSheetHeadAndTail(param.fileFullPath);
+            }
+        } catch (error) {
+            console.error("Err: Module.shardingParse param:",
+                param, error.stack);
+        }
+        fileContent = ret?.fileContent;
+        if (fileContent?.length > 0) {
+            try {
+                fileContent = new TextDecoder().decode(fileContent);
+                fileContent = JSON.parse(fileContent);
+                // ===================
+                // =================
+                // ============= move to bamboo
+                retRes = true;
+            } catch (err) {
+                console.error("parse json error: ", param, err, fileContent);
+            }
+        } else {
+            fileContent = {}
+        }
+        // delete native memory to avoid memory leak
+        Module.freeNativeString(ret?.nativeStringPointer);
+    }
+
+    var response = {
+        command: "onShardingParseComplete",
+        param: param,
+        result: {
+            ret: retRes,
+            fileContent: fileContent,
+        },
+    }
+    postMessage(response);
+}
+
 function writeFile(param) {
     var docFileName = 'f.xml';
     var ret = Module.writeXmlFile(docFileName, param);
@@ -183,27 +271,30 @@ function writeFile(param) {
 }
 
 
-function getSliceInfo(param) {
+function getShardInfo(param) {
     if (!param) {
         return;
     }
     return {
-        willSlice: param.willSlice,
-        sliceType: param.sliceType,
-        sliceRowNum: param?.sliceRowNum ? param?.sliceRowNum : DefaultSliceRowNum,
+        willShard: param.willShard,
+        shardType: param.shardType,
+        shardRowNum: param?.shardRowNum ? param?.shardRowNum : DefaultShardRowNum,
     }
 }
+function getShardType(param) {
+    return param.shardType;
+}
 
-function onParsedSliceData(fileId, relativePath, slicedData, isEnded) {
-    // console.log("In js.onParsedSliceData: fileId: "
+function onParsedShardData(fileId, relativePath, shardedData, isEnded) {
+    // console.log("In js.onParsedShardData: fileId: "
     //     + fileId + ", relativePath: " + relativePath);
-    // console.log("In js.onParsedSliceData: isEnded: "
-    //     + isEnded + ", slicedData: " + slicedData);
-    // console.log("worker js.onParsedSliceData: isEnded: " + isEnded);
+    // console.log("In js.onParsedShardData: isEnded: "
+    //     + isEnded + ", shardedData: " + shardedData);
+    // console.log("worker js.onParsedShardData: isEnded: " + isEnded);
 
-    var fileContent = UTF8ToString(slicedData);
+    var fileContent = UTF8ToString(shardedData);
     var response = {
-        command: "onParsedSliceDataComplete",
+        command: "onParsedShardDataComplete",
         param: {
             fileId: UTF8ToString(fileId),
             relativePath: UTF8ToString(relativePath),

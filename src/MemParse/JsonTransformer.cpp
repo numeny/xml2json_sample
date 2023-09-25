@@ -281,8 +281,8 @@ void JsonTransformer::startElement(const XMLCh* const name, AttributeList& attri
         }
     }
 
-    // if this element is SliceStr_SheetData
-    // set SliceState is Started_SheetData
+    // if this element is ShardStr_SheetData
+    // set ShardState is Started_SheetData
 
     // Add " { tag: xx, attr: [{},{}]"
     XMLChToUtf8(tagStr, name);
@@ -290,8 +290,8 @@ void JsonTransformer::startElement(const XMLCh* const name, AttributeList& attri
     appendJsonStream(jsonStrOfThisTag);
 
     // push stack new element;
-    shared_ptr<StackElement> newElement(new StackElement);
-    newElement->mStackElementState = NoContent;
+    shared_ptr<StackElement> newElement(new StackElement(tagStr));
+    // newElement->mStackElementState = NoContent;
     mStack.push(newElement);
 
     if (mJsonTransformerLisener) {
@@ -299,8 +299,9 @@ void JsonTransformer::startElement(const XMLCh* const name, AttributeList& attri
     }
 }
 
-void JsonTransformer::endElement(const XMLCh* const name) {
-
+// void JsonTransformer::endElement(const XMLCh* const name) {
+void JsonTransformer::endElement2(const XMLCh* const name,
+    const HandlerExtraInfo& extraInfo) {
     // 1. switch (stack has element and stateMachineOfLastElementInStack) {
     //     WithContent: Add "]"
     //
@@ -341,6 +342,7 @@ void JsonTransformer::endElement(const XMLCh* const name) {
 
     if (mJsonTransformerLisener) {
         mJsonTransformerLisener->endElement(tagStr, jsonStr);
+        mJsonTransformerLisener->endElement2(tagStr, jsonStr, extraInfo);
     }
 }
 

@@ -7,7 +7,7 @@ using namespace std;
 
 #define DebugXml2Json 1
 
-#define DefaultSliceRowNum 1
+#define DefaultShardRowNum 1
 
 typedef enum {
     ParseXmlType_FromMemory,
@@ -16,10 +16,10 @@ typedef enum {
 } ParseXmlType;
 
 typedef enum {
-    SliceType_WordDocument,
-    SliceType_ExcelSheetx,
-    SliceType_Max,
-} SliceType;
+    ShardType_WordDocument,
+    ShardType_ExcelSheetx,
+    ShardType_Max,
+} ShardType;
 
 struct ReadFileInfo {
     std::string mFileFullPath;           // full path of xml file to read
@@ -28,9 +28,9 @@ struct ReadFileInfo {
     ParseXmlType mParseXmlType = ParseXmlType_FromFile;
     std::string mXmlFileContent;         // content of xml file to read, used when mParseXmlType is ParseXmlType_FromMemory
 
-    bool mWillSlice = false;        // will the file to read be sliced?
-    unsigned int mSliceSize = DefaultSliceRowNum;    // 1024; // row number for slicing
-    SliceType mSliceType = SliceType_WordDocument;
+    bool mWillShard = false;        // will the file to read be shardd?
+    unsigned int mShardSize = DefaultShardRowNum;    // 1024; // row number for slicing
+    ShardType mShardType = ShardType_WordDocument;
     bool mWillSaveTransformResult = true;
 };
 

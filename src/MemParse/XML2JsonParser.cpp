@@ -9,7 +9,7 @@
 #include <xercesc/util/PlatformUtils.hpp>
 
 #include "Common.h"
-#include "ExcelSlicer.h"
+#include "ExcelSharder.h"
 #include "MemParseHandlers.h"
 #include "XML2JsonParser.h"
 
@@ -99,24 +99,20 @@ int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler) {
 #endif
         errorCount = parser->getErrorCount();
     }
-    catch (const OutOfMemoryException&)
-    {
+    catch (const OutOfMemoryException&) {
         XERCES_STD_QUALIFIER cerr << "[Error] OutOfMemoryException parsing: "
             << readFileInfo.mFileFullPath << XERCES_STD_QUALIFIER endl;
-        errorCode = -5;
-    }
-    catch (const XMLException& e)
-    {
+        errorCode = -4;
+    } catch (const XMLException& e) {
         XERCES_STD_QUALIFIER cerr << "\n[Error] Exception parsing: " << readFileInfo.mFileFullPath
             << "\nException message:  \n"
             << StrX(e.getMessage()) << "\n" << XERCES_STD_QUALIFIER endl;
-        errorCode = -4;
+        errorCode = -5;
+    } catch (const UserInterruption& e) {
+        XERCES_STD_QUALIFIER cout << "\nUserInterruption: " << e.mRetCode << XERCES_STD_QUALIFIER endl;
+        errorCode = e.mRetCode;
     }
-    catch (const UserInterruption& e)
-    {
-        XERCES_STD_QUALIFIER cerr << "\nUserInterruption: " << e.mCode << XERCES_STD_QUALIFIER endl;
-        errorCode = 4;
-    }
+    cout << "Debug: ParseXml2Json handled throw UserInterruption(): " << endl;
 #if EnableParseTimeDuration
     if (!errorCount) {
         XERCES_STD_QUALIFIER cout << "\nFinished parsing: "
@@ -130,7 +126,7 @@ int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler) {
     delete parser;
     
     if (errorCount > 0)
-        errorCode = -4;
+        errorCode = -5;
 
     // Should terminate even if error occured
     TerminateXMLPlatform();
@@ -140,11 +136,11 @@ int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler) {
 
 int ParseXml2Json(string& jsonUtf8Str, const ReadFileInfo& readFileInfo) {
     MemParseHandlers handlers;
-    ExcelSlicer excelSlicer;
+    ExcelSharder excelShardr;
     handlers.setWillSaveTransformResult(readFileInfo.mWillSaveTransformResult);
-    if (readFileInfo.mWillSlice && readFileInfo.mSliceSize > 0) {
-        handlers.setLisener(&excelSlicer);
-        excelSlicer.setReadFileInfo(readFileInfo);
+    if (readFileInfo.mWillShard && readFileInfo.mShardSize > 0) {
+        handlers.setLisener(&excelShardr);
+        excelShardr.setReadFileInfo(readFileInfo);
     }
 
     int ret = ParseXml2Json(readFileInfo, &handlers);
@@ -156,34 +152,34 @@ int ParseXml2Json(string& jsonUtf8Str, const ReadFileInfo& readFileInfo) {
     return ret;
 }
 
-int GetFileContentWithNoSlice(string& jsonUtf8Str, const string& fileFullPath, const string& fileId,
+int GetFileContentWithNoShard(string& jsonUtf8Str, const string& fileFullPath, const string& fileId,
     const string& relativePath) {
-    return GetFileContent(jsonUtf8Str, fileFullPath, fileId, relativePath, false, SliceType_WordDocument, 0);
+    return GetFileContent(jsonUtf8Str, fileFullPath, fileId, relativePath, false, ShardType_WordDocument, 0);
 }
 
 int GetFileContent(string& jsonUtf8Str, const string& fileFullPath, 
     const string& fileId, const string& relativePath,
-    bool willSlice, SliceType sliceType) {
-    return GetFileContent(jsonUtf8Str, fileFullPath, fileId, relativePath, willSlice, sliceType, DefaultSliceRowNum);
+    bool willShard, ShardType shardType) {
+    return GetFileContent(jsonUtf8Str, fileFullPath, fileId, relativePath, willShard, shardType, DefaultShardRowNum);
 }
 
 int GetFileContent(string& jsonUtf8Str, const string& fileFullPath, 
     const string& fileId, const string& relativePath,
-    bool willSlice, SliceType sliceType, unsigned int sliceSize) {
-    return GetFileContent(jsonUtf8Str, fileFullPath, fileId, relativePath, willSlice, sliceType, sliceSize, true);
+    bool willShard, ShardType shardType, unsigned int shardSize) {
+    return GetFileContent(jsonUtf8Str, fileFullPath, fileId, relativePath, willShard, shardType, shardSize, true);
 }
 
 int GetFileContent(string& jsonUtf8Str, const string& fileFullPath, 
     const string& fileId, const string& relativePath,
-    bool willSlice, SliceType sliceType, unsigned int sliceSize, bool willSaveTransformResult) {
+    bool willShard, ShardType shardType, unsigned int shardSize, bool willSaveTransformResult) {
     ReadFileInfo readFileInfo;
     readFileInfo.mParseXmlType = ParseXmlType_FromFile;
     readFileInfo.mFileFullPath = fileFullPath;
     readFileInfo.mFileId       = fileId;
     readFileInfo.mRelativePath = relativePath;
-    readFileInfo.mWillSlice    = willSlice;
-    readFileInfo.mSliceType    = sliceType;
-    readFileInfo.mSliceSize    = sliceSize;
+    readFileInfo.mWillShard    = willShard;
+    readFileInfo.mShardType    = shardType;
+    readFileInfo.mShardSize    = shardSize;
     readFileInfo.mWillSaveTransformResult   = willSaveTransformResult;
 
     // xml to json

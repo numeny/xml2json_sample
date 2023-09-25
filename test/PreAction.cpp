@@ -11,6 +11,7 @@
 #include <filesystem>
 #endif
 
+#include "ShardHandler.h"
 #include "XML2JsonParser.h"
 
 using namespace std;
@@ -18,13 +19,6 @@ using namespace std;
 const std::wstring source_folder = L"/source_file/";
 const std::wstring result_folder = L"/trans_result/";
 const std::string compress_folder = "/compress_folder/";
-
-// string U_TO_UTF8(val) {
-//     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-//     std::string str = converter.to_bytes(wstr);
-//     return str;
-// }
-
 
 int writeFile() {
     std::ofstream outputFile("example.txt");
@@ -67,13 +61,13 @@ int writeXmlFile(const string& fileName, const string& fileContent) {
 
 emscripten::val readAsJSON(const string& fileFullPath,
     const string& fileId, const string& relativePath,
-    bool willSlice, int sliceType, unsigned int sliceSize, bool willSaveTransformResult) {
+    bool willShard, int shardType, unsigned int shardSize, bool willSaveTransformResult) {
     DurationTimer dt("readAsJSON: " + fileFullPath);
     string *jsonUtf8Str = new string();
     // readFileIntoString(*jsonUtf8Str, fileFullPath);
     int ret = GetFileContent(*jsonUtf8Str, fileFullPath, fileId,
-        relativePath, willSlice, (SliceType)sliceType,
-        sliceSize, willSaveTransformResult);
+        relativePath, willShard, (ShardType)shardType,
+        shardSize, willSaveTransformResult);
     if (ret) {
         cerr << "Err: readAsJSON" << endl;
     }
@@ -143,8 +137,35 @@ void freeNativeString(int nativePointer) {
 }
 
 void freeNativePointer(int nativePointer) {
-  delete (void*)nativePointer;
+  delete reinterpret_cast<char*>(nativePointer);
 }
+
+emscripten::val readNextShard(const string& fileFullPath,
+    int shardType, unsigned int shardSize) {
+    cout << "in readNextShard()-1" << endl;
+    string *jsonUtf8Str = new string();
+
+    // int ret = GetNextShardData(jsonUtf8Str,
+    //     fileFullPath, (ShardType)shardType, shardSize);
+    // int ret = ReadNextShard(*jsonUtf8Str,
+    //     fileFullPath, (ShardType)shardType, shardSize);
+    bool isShardEnded;
+
+    int ret = ShardHandler::readNextShard(*jsonUtf8Str, isShardEnded,
+        fileFullPath, (ShardType)shardType, shardSize);
+    if (ret) {
+        cerr << "Err: readNextShard" << endl;
+    }
+	emscripten::val rst = emscripten::val::object();
+    auto buff = emscripten::val(emscripten::typed_memory_view(
+            jsonUtf8Str->length(), jsonUtf8Str->c_str()));
+    rst.set("fileContent", buff);
+    rst.set("isShardEnded", isShardEnded);
+    rst.set("nativeStringPointer", reinterpret_cast<int>(jsonUtf8Str));
+    return rst;
+    // return emscripten::val(emscripten::typed_memory_view(
+    //     jsonUtf8Str.length(), jsonUtf8Str.c_str()));
+ }
 
 // int deleteFile(const std::wstring &fileIdWstring) {
 //     string fileId = U_TO_UTF8(fileIdWstring);
@@ -171,6 +192,7 @@ void freeNativePointer(int nativePointer) {
 EMSCRIPTEN_BINDINGS(my_module22) {
   emscripten::function("writeXmlFile", &writeXmlFile);
   emscripten::function("readAsJSON", &readAsJSON);
+  emscripten::function("readNextShard", &readNextShard);
   emscripten::function("getDocumentSectPrArray", &getDocumentSectPrArray);
   emscripten::function("getExcelSheetHeadAndTail", &getExcelSheetHeadAndTail);
   emscripten::function("freeNativeString", &freeNativeString);

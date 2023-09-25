@@ -7,163 +7,156 @@
     accept="doc" onchange="onchangeFile(this.files[0])">
     <script>
         let fileId = 'f.xml';
-        const gMainSliceDataQueue = new Queue();
-        let gMainIsSliceDataEnded = false;
+        const gMainShardDataQueue = new Queue();
+        let gMainIsShardDataEnded = false;
 
         const worker = new Worker("./file_manager.js");
-        let gSliceDataMapArray = new Map();
+        let gShardDataMapArray = new Map();
 
-        function getNextSliceDataImpl(param) {
-            let sliceDataInfo = getSliceDataInfo(param);
-            while (!sliceDataInfo.sliceDataQueue.isEmpty()) {
-                let fileContent = sliceDataInfo.sliceDataQueue.dequeue();
-                // console.log("main getNextSliceData: fileContent: ", fileContent);
-            }
+        // function readNextShardImpl(param) {
+        //     let shardDataInfo = getShardDataInfo(param);
+        //     while (!shardDataInfo.shardDataQueue.isEmpty()) {
+        //         let fileContent = shardDataInfo.shardDataQueue.dequeue();
+        //         // console.log("main readNextShardImpl: fileContent: ", fileContent);
+        //     }
 
-            if (!sliceDataInfo.sliceDataQueue.isEmpty() || !sliceDataInfo.isSliceDataEnded) {
-                setTimeout(function() {
-                    getNextSliceDataImpl(param);
-                }, 50);
-            }
-        }
+        //     if (!shardDataInfo.shardDataQueue.isEmpty() || !shardDataInfo.isShardDataEnded) {
+        //         setTimeout(function() {
+        //             readNextShardImpl(param);
+        //         }, 50);
+        //     }
+        // }
 
-        function getNextSliceData(param) {
-            let sliceDataInfo = getSliceDataInfo(param);
-            if (!sliceDataInfo.sliceDataQueue.isEmpty() || !sliceDataInfo.isSliceDataEnded) {
-                setTimeout(function() {
-                    getNextSliceDataImpl(param);
-                }, 50);
-            }
-        }
+        // function readNextShard(param) {
+        //     let shardDataInfo = getShardDataInfo(param);
+        //     if (!shardDataInfo.shardDataQueue.isEmpty() || !shardDataInfo.isShardDataEnded) {
+        //         setTimeout(function() {
+        //             readNextShardImpl(param);
+        //         }, 50);
+        //     }
+        // }
         
         function onWriteFileComplete(response) {
             var param = {
                     fileId: fileId,
                     relativePath: fileId,
                     fileFullPath: fileId,
-                    willSlice: false,
-                    sliceType: 0,
-                    sliceRowNum: 200,
+                    willShard: true,
+                    shardType: 0,
+                    shardSize: 3,
                     willSaveTransformResult: true,
-                };
-            if (param.sliceType == 0) {
-                worker.postMessage({
-                    command: "getDocumentSectPrArray",
-                    param: param,
-                });
-            } else if (param.sliceType == 1) {
-                worker.postMessage({
-                    command: "getExcelSheetHeadAndTail",
-                    param: param,
-                });
-            }
+            };
 
-            for(var a = 0; a < 1; a++) {
-                setTimeout(function() {
-                    worker.postMessage({
-                        command: "getTransformFile",
-                        param: param,
-                    });
-                }, a*20);
-            }
+            // worker.postMessage({
+            //     command: "shardingParse",
+            //     param: param,
+            // });
+
+            // for(var a = 0; a < 1; a++) {
+            //     setTimeout(function() {
+            //         worker.postMessage({
+            //             command: "readAsJSON",
+            //             param: param,
+            //         });
+            //     }, a*20);
+            // }
+            worker.postMessage({
+                command: "readNextShard",
+                param: param,
+            });
         }
 
-        function onGetTransformFileComplete(response) {
+        function onReadAsJSONComplete(response) {
             let fileContent = response?.result?.fileContent;
-            console.log("main onGetTransformFileComplete: fileContent: ", fileContent);
+            console.log("main onReadAsJSONComplete: fileContent: ", fileContent);
         }
-
-        function getSliceDataInfo(param) {
-            let relativePath = param?.relativePath;
-            if (!relativePath) {
-                console.error("Err: getSliceDataInfo: no relativePath in param: ", param);
-                return null;
-            }
-            let gSliceDataMap;
-            if (!gSliceDataMapArray.has(param?.fileId)) {
-                gSliceDataMap = new Map();
-                gSliceDataMapArray[param?.fileId] = gSliceDataMap;
-            } else {
-                gSliceDataMap = gSliceDataMapArray[param?.fileId];
-            }
-            let sliceDataInfo;
-            if (!gSliceDataMap.has(relativePath)) {
-                sliceDataInfo = {
-                    sliceDataQueue: new Queue(),
-                    isSliceDataEnded: false,
-                };
-                gSliceDataMap[relativePath] = sliceDataInfo;
-            }
-
-            return sliceDataInfo;
-        }
-        function onParsedSliceDataComplete(response) {
-            console.log("main onParsedSliceDataComplete: response: ", response);
+        function onReadNextShardComplete(response) {
             let result = response?.result;
-            if (!result) {
-                console.error("Err: main onParsedSliceDataComplete: no response: ", response)
-                return;
-            }
             let fileContent = result?.fileContent;
-            if (fileContent?.length > 0) {
-                // fileContent = new TextDecoder().decode(fileContent);
-                try {
-                    fileContent = JSON.parse(fileContent);
-                    console.log("main onParsedSliceDataComplete: fileContent: ", fileContent);
-                } catch (err) {
-                    console.error("Err: main onParsedSliceDataComplete: ", fileContent, response?.param, err)
-                }
+            console.log("main onReadNextShardComplete: response: ", response);
+            console.log("main onReadNextShardComplete: fileContent: ", fileContent);
+
+            if (!result?.isShardEnded/* && fileContent?.length > 0*/) {
+                worker.postMessage({
+                    command: "readNextShard",
+                    param: response?.param,
+                });
             }
-            console.log("main onParsedSliceDataComplete: fileContent: ", fileContent);
-            let sliceDataInfo = getSliceDataInfo(response?.param);
-            sliceDataInfo.sliceDataQueue.enqueue(fileContent);
-            sliceDataInfo.isSliceDataEnded = result.isEnded;
-            
-            getNextSliceData(response?.param);
         }
 
-        function onGetExcelSheetHeadAndTail(response) {
+        // function getShardDataInfo(param) {
+        //     let relativePath = param?.relativePath;
+        //     if (!relativePath) {
+        //         console.error("Err: getShardDataInfo: no relativePath in param: ", param);
+        //         return null;
+        //     }
+        //     let gShardDataMap;
+        //     if (!gShardDataMapArray.has(param?.fileId)) {
+        //         gShardDataMap = new Map();
+        //         gShardDataMapArray[param?.fileId] = gShardDataMap;
+        //     } else {
+        //         gShardDataMap = gShardDataMapArray[param?.fileId];
+        //     }
+        //     let shardDataInfo;
+        //     if (!gShardDataMap.has(relativePath)) {
+        //         shardDataInfo = {
+        //             shardDataQueue: new Queue(),
+        //             isShardDataEnded: false,
+        //         };
+        //         gShardDataMap[relativePath] = shardDataInfo;
+        //     }
+
+        //     return shardDataInfo;
+        // }
+        // function onParsedShardDataComplete(response) {
+        //     console.log("main onParsedShardDataComplete: response: ", response);
+        //     let result = response?.result;
+        //     if (!result) {
+        //         console.error("Err: main onParsedShardDataComplete: no response: ", response)
+        //         return;
+        //     }
+        //     let fileContent = result?.fileContent;
+        //     if (fileContent?.length > 0) {
+        //         // fileContent = new TextDecoder().decode(fileContent);
+        //         try {
+        //             fileContent = JSON.parse(fileContent);
+        //             console.log("main onParsedShardDataComplete: fileContent: ", fileContent);
+        //         } catch (err) {
+        //             console.error("Err: main onParsedShardDataComplete: ", fileContent, response?.param, err)
+        //         }
+        //     }
+        //     console.log("main onParsedShardDataComplete: fileContent: ", fileContent);
+        //     let shardDataInfo = getShardDataInfo(response?.param);
+        //     shardDataInfo.shardDataQueue.enqueue(fileContent);
+        //     shardDataInfo.isShardDataEnded = result.isEnded;
+            
+        //     readNextShard(response?.param);
+        // }
+
+        function onShardingParseComplete(response) {
             var fileContent = response?.result?.fileContent;
-            console.log("main onGetExcelSheetHeadAndTailComplete: fileContent: ", fileContent);
-        }
-        function onGetDocumentSectPrArrayComplete(response) {
-            var fileContent = response?.result?.fileContent;
-            console.log("main onGetDocumentSectPrArrayComplete: fileContent: ", fileContent);
+            console.log("main onShardingParseComplete: fileContent: ", fileContent);
         }
 
         function onEndDocumentComplete(response) {
-            let sliceDataInfo = getSliceDataInfo(response?.param);
-            sliceDataInfo.isSliceDataEnded = true;
-            console.warn("onEndDocumentComplete: ", response);
+            // let shardDataInfo = getShardDataInfo(response?.param);
+            // shardDataInfo.isShardDataEnded = true;
+            // console.warn("onEndDocumentComplete: ", response);
         }
+
         function inspectResponse() {
             worker.addEventListener("message", (message) => {
                 var handlers = {
                     // "onOpenFileComplete": onOpenFileComplete,
                     "onWriteFileComplete": onWriteFileComplete,
-                    "onGetTransformFileComplete": onGetTransformFileComplete,
-                    "onParsedSliceDataComplete": onParsedSliceDataComplete,
-                    "onGetExcelSheetHeadAndTail": onGetExcelSheetHeadAndTail,
-                    "onGetDocumentSectPrArrayComplete": onGetDocumentSectPrArrayComplete,
+                    "onReadAsJSONComplete": onReadAsJSONComplete,
+                    "onReadNextShardComplete": onReadNextShardComplete,
+                    // "onParsedShardDataComplete": onParsedShardDataComplete,
+                    "onShardingParseComplete": onShardingParseComplete,
                     "onEndDocumentComplete": onEndDocumentComplete,
                     // "onWorkerReady": onWorkerReady,
                 };
                 var response = message.data;
-                // if (response instanceof ArrayBuffer) {
-                //     let fileContent = response;
-                //     console.log("main onGetNextSliceComplete-1: ArrayBuffer: ", fileContent);
-                //     // if (fileContent?.byteLength > 0) {
-                //         console.log("main onGetNextSliceComplete-2: ArrayBuffer: ", fileContent);
-                //         fileContent = new TextDecoder().decode(fileContent);
-                //         console.log("main onGetNextSliceComplete-3: ArrayBuffer: ", fileContent);
-                //         try {
-                //             fileContent = JSON.parse(fileContent)
-                //             console.log("main onGetNextSliceComplete-4: ArrayBuffer: ", fileContent);
-                //         } catch (err) {
-                //             console.error("Err: main onGetNextSliceComplete: ", fileContent, err)
-                //         }
-                //     // }
-                // }
                 console.log("--- [Debug] main received: response:", response)
                 var func = handlers[response.command]
                 if (func == undefined) {

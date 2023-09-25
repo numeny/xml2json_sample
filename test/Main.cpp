@@ -14,8 +14,9 @@
 #include <xercesc/util/OutOfMemoryException.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
 
-#include "XML2JsonParser.h"
 #include "Common.h"
+#include "ShardHandler.h"
+#include "XML2JsonParser.h"
 
 using namespace std;
 XERCES_CPP_NAMESPACE_USE
@@ -38,7 +39,10 @@ const char*  gXMLInMemBuf =
         <col min='1' max='1' width='6.16153846153846' style='14' customWidth='1'/>\n\
         <col min='83' max='16384' width='9' style='11'/>\n\
     </cols>\n\
-    <sheetData>mmm</sheetData>\n\
+    <sheetData>\n\
+        <row kkk='kkkk'>\n\
+        </row>\n\
+    </sheetData>\n\
     <legacyDrawing />\n\
 </worksheet>\n\
 ";
@@ -75,7 +79,8 @@ int main(int argC, char* argV[])
     // " 3 - parse all xml file and save to json file for a directory @xxx."
     bool parseFromMem = true;
     bool parseFromFileDirectly = true;
-    bool parseFromFileSlice = true;
+    bool useShardMode2 = true;
+    bool willShard = true;
     bool getSectPrArrayForWordDocument = false;
     bool getHeadAndTailForExcelSheet = false;
     if (argC >= 2) {
@@ -84,23 +89,25 @@ int main(int argC, char* argV[])
         } else if ("1" == string(argV[1])) {
             parseFromMem = false;
             parseFromFileDirectly = true;
-            parseFromFileSlice = false;
+            willShard = false;
         } else if ("2" == string(argV[1])) {
             parseFromMem = false;
             parseFromFileDirectly = true;
-            parseFromFileSlice = true;
+            willShard = true;
+            useShardMode2 = true;
         } else if ("3" == string(argV[1])) {
             parseFromMem = false;
-            parseFromFileDirectly = false;
-            parseFromFileSlice = false;
+            parseFromFileDirectly = true;
+            willShard = true;
+            useShardMode2 = false;
         } else if ("4" == string(argV[1])) {
             getSectPrArrayForWordDocument = true;
         } else if ("5" == string(argV[1])) {
             getHeadAndTailForExcelSheet = true;
         } else {
-            parseFromMem = false;
+            parseFromMem = true;
             parseFromFileDirectly = true;
-            parseFromFileSlice = false;
+            willShard = false;
         }
         if (argC >= 3) {
             xmlFilePath = string(argV[2]);
@@ -143,16 +150,27 @@ int main(int argC, char* argV[])
 
     static unsigned long t0, t1, t2;
     t0 = XMLPlatformUtils::getCurrentMillis();
-    SliceType sliceType = SliceType_WordDocument;
+    ShardType shardType = ShardType_WordDocument;
     if (xmlFilePath.find("word/document.xml") != string::npos) {
-        sliceType = SliceType_WordDocument;
+        shardType = ShardType_WordDocument;
     } else if (xmlFilePath.find("xl/worksheets/sheet") != string::npos) {
-        sliceType = SliceType_ExcelSheetx;
+        shardType = ShardType_ExcelSheetx;
     }
 
     if (parseFromFileDirectly) {
-        int ret = GetFileContent(jsonUtf8Str, xmlFilePath, "fileId",
-            xmlFilePath, parseFromFileSlice, sliceType/*, 1*/);
+        if (willShard && useShardMode2) {
+            bool isShardEnded;
+            int ret = ShardHandler::readNextShard(jsonUtf8Str, isShardEnded,
+                xmlFilePath, shardType, 2);
+            if (ret) {
+                cerr << "Err: ShardHandler::readNextShard: " << xmlFilePath << endl;
+            } else {
+                cout << "Debug: ShardHandler::readNextShard: isShardEnded: " << isShardEnded << endl;
+            }
+        } else {
+            int ret = GetFileContent(jsonUtf8Str, xmlFilePath, "fileId",
+                xmlFilePath, willShard, shardType/*, 1*/);
+        }
         t1 = XMLPlatformUtils::getCurrentMillis();
         cout << "Parse time(ms) : " << (t1 - t0) <<endl;
     } else {
