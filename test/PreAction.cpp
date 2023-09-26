@@ -132,6 +132,20 @@ emscripten::val getExcelSheetHeadAndTail(const string& fileFullPath) {
     //     jsonUtf8Str->length(), jsonUtf8Str->c_str()));
 }
 
+emscripten::val convertXML2JSON(const string& xmlContent) {
+    string *jsonUtf8Str = new string();
+    int ret = ConvertXML2JSON(*jsonUtf8Str, xmlContent);
+    if (ret) {
+        cerr << "Err: ConvertXML2JSON: " << xmlContent << endl;
+    }
+    emscripten::val rst = emscripten::val::object();
+    auto buff = emscripten::val(emscripten::typed_memory_view(
+            jsonUtf8Str->length(), jsonUtf8Str->c_str()));
+    rst.set("jsonContent", buff);
+    rst.set("nativeStringPointer", reinterpret_cast<int>(jsonUtf8Str));
+    return rst;
+}
+
 void freeNativeString(int nativePointer) {
   delete (string*)nativePointer;
 }
@@ -193,6 +207,7 @@ EMSCRIPTEN_BINDINGS(my_module22) {
   emscripten::function("writeXmlFile", &writeXmlFile);
   emscripten::function("readAsJSON", &readAsJSON);
   emscripten::function("readNextShard", &readNextShard);
+  emscripten::function("convertXML2JSON", &convertXML2JSON);
   emscripten::function("getDocumentSectPrArray", &getDocumentSectPrArray);
   emscripten::function("getExcelSheetHeadAndTail", &getExcelSheetHeadAndTail);
   emscripten::function("freeNativeString", &freeNativeString);

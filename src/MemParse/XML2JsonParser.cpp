@@ -190,3 +190,20 @@ int GetFileContent(string& jsonUtf8Str, const string& fileFullPath,
     }
     return 0;
 }
+
+// get json for xml content
+int ConvertXML2JSON(string& jsonStr, const string& xmlContent) {
+    MemParseHandlers handlers;
+    ReadFileInfo readFileInfo;
+    readFileInfo.mParseXmlType = ParseXmlType_FromMemory;
+    readFileInfo.mXmlFileContent = xmlContent;
+    readFileInfo.mWillSaveTransformResult = true;
+
+    int ret = ParseXml2Json(readFileInfo, &handlers);
+    if (ret) {
+        cerr << "Err: ConvertXML2JSON error, xmlStr: " << xmlContent << endl;
+    } else {
+        jsonStr = std::move(handlers.jsonUtf8String());
+    }
+    return ret;
+}
