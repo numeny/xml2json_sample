@@ -11,7 +11,7 @@
 #include <filesystem>
 #endif
 
-#include "ShardHandler.h"
+#include "ShardParser.h"
 #include "XML2JsonParser.h"
 
 using namespace std;
@@ -56,6 +56,7 @@ int writeXmlFile(const string& fileName, const string& fileContent) {
 
     return 0;
 }
+
 
 #if defined(EMSCRIPTEN)
 
@@ -156,16 +157,10 @@ void freeNativePointer(int nativePointer) {
 
 emscripten::val readNextShard(const string& fileFullPath,
     int shardType, unsigned int shardSize) {
-    cout << "in readNextShard()-1" << endl;
     string *jsonUtf8Str = new string();
-
-    // int ret = GetNextShardData(jsonUtf8Str,
-    //     fileFullPath, (ShardType)shardType, shardSize);
-    // int ret = ReadNextShard(*jsonUtf8Str,
-    //     fileFullPath, (ShardType)shardType, shardSize);
     bool isShardEnded;
 
-    int ret = ShardHandler::readNextShard(*jsonUtf8Str, isShardEnded,
+    int ret = ShardParser::readNextShard(*jsonUtf8Str, isShardEnded,
         fileFullPath, (ShardType)shardType, shardSize);
     if (ret) {
         cerr << "Err: readNextShard" << endl;
@@ -176,32 +171,9 @@ emscripten::val readNextShard(const string& fileFullPath,
     rst.set("fileContent", buff);
     rst.set("isShardEnded", isShardEnded);
     rst.set("nativeStringPointer", reinterpret_cast<int>(jsonUtf8Str));
+
     return rst;
-    // return emscripten::val(emscripten::typed_memory_view(
-    //     jsonUtf8Str.length(), jsonUtf8Str.c_str()));
  }
-
-// int deleteFile(const std::wstring &fileIdWstring) {
-//     string fileId = U_TO_UTF8(fileIdWstring);
-//     if (!fs::exists(fileId)/* && fs::is_directory(fileId)*/) {
-//         return 0;
-//     }
-//     int ret = 0;
-//     try {
-//         if (!fs::remove_all(fileId)) {
-//             ret = -1;
-//             std::cerr << "Err: remove_all:" << fileId << std::endl;
-//         }
-//     } catch (const std::exception& e) {
-//         ret = -1;
-//         std::cerr << "Err: remove_all:" << fileId << ", exception: " << e.what() << std::endl;
-//     }
-//     return ret;
-// }
-
-// void deleteFiles(const std::wstring &fileId){
-// 	NSDirectory::DeleteDirectory(result_folder+fileId);
-// }
 
 EMSCRIPTEN_BINDINGS(my_module22) {
   emscripten::function("writeXmlFile", &writeXmlFile);
@@ -211,5 +183,7 @@ EMSCRIPTEN_BINDINGS(my_module22) {
   emscripten::function("getDocumentSectPrArray", &getDocumentSectPrArray);
   emscripten::function("getExcelSheetHeadAndTail", &getExcelSheetHeadAndTail);
   emscripten::function("freeNativeString", &freeNativeString);
+  emscripten::function("setMinBuffSizeToRead", &setMinBuffSizeToRead);
+  emscripten::function("setMaxBuffSizeToRead", &setMaxBuffSizeToRead);
 }
 #endif

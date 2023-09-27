@@ -91,7 +91,27 @@ int readFileIntoString2(char **contentStr, size_t& outFileSize, const string& fi
     return 0;
 }
 
-#define EnableTimeCalculation 1
+// delete file or directory
+int deleteAllFile(const string& filePath) {
+    if (!filesystem::exists(filePath)) {
+        return 0;
+    }
+    int ret = 0;
+    try {
+        if (!filesystem::remove_all(filePath)) {
+            ret = -1;
+            cerr << "Err: remove_all:"
+                << filePath << endl;
+        }
+    } catch (const exception& e) {
+        ret = -1;
+        cerr << "Err: remove_all:" << filePath
+            << ", exception: " << e.what() << endl;
+    }
+    return ret;
+}
+
+#define EnableTimeCalculation 0
 
 DurationTimer::DurationTimer() {
 #if EnableTimeCalculation

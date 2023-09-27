@@ -15,9 +15,6 @@
 
 using namespace std;
 
-static const char* gMemBufId = "memBufId";
-static int gMemBufCnt = 0;
-
 #define EnableParseTimeDuration 0
 
 static unsigned gInitializedXMLPlatform = 0;
@@ -83,11 +80,14 @@ int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler) {
         } else if (ParseXmlType_FromMemory == readFileInfo.mParseXmlType) {
             //  Create MemBufferInputSource from the buffer containing the XML
             //  statements.
+            static int gMemBufCnt = 0;
+            static string gMemBufId = "memBufId"; // should be static, or else error occured
+            gMemBufId += (gMemBufCnt++);
             shared_ptr<MemBufInputSource> memBufIS(new MemBufInputSource
             (
                 (const XMLByte*)readFileInfo.mXmlFileContent.c_str()
                 , readFileInfo.mXmlFileContent.length()
-                , gMemBufId + (gMemBufCnt++)
+                , gMemBufId.c_str()
                 , false
             ));
             memBufIS->setCopyBufToStream(false); // not copy old buffer, use it directly, for performance
@@ -109,10 +109,9 @@ int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler) {
             << StrX(e.getMessage()) << "\n" << XERCES_STD_QUALIFIER endl;
         errorCode = -5;
     } catch (const UserInterruption& e) {
-        XERCES_STD_QUALIFIER cout << "\nUserInterruption: " << e.mRetCode << XERCES_STD_QUALIFIER endl;
+        // interrupt the parse by user
         errorCode = e.mRetCode;
     }
-    cout << "Debug: ParseXml2Json handled throw UserInterruption(): " << endl;
 #if EnableParseTimeDuration
     if (!errorCount) {
         XERCES_STD_QUALIFIER cout << "\nFinished parsing: "

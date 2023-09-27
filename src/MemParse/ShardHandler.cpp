@@ -6,93 +6,43 @@
 
 #include "MemParseHandlers.h"
 #include "ShardHandler.h"
+#include "Xml2JsonCommonInternal.h"
 #include "XML2JsonParser.h"
-
-// for shard xml file(sheet1.xml, sheet2.xml, etc.) of .xlsx
-const string ShardStr_SheetData     = "sheetData";
-const string ShardStr_Row           = "row";
-const string ShardStrForWord_WBody  = "w:body";
 
 #define DepthOfStartTagForShard     1
 
-std::map<std::string, shared_ptr<ShardHandler>> ShardHandler::mMapOfShardHandlers;
-
-int ShardHandler::readNextShard(string& jsonUtf8Str, bool& isShardEnded,
-    const string& fileFullPath, ShardType shardType, unsigned int shardSize) {
-    shared_ptr<ShardHandler> shardHandler;
-    if (mMapOfShardHandlers.find(fileFullPath) != mMapOfShardHandlers.end()) {
-        shardHandler = mMapOfShardHandlers[fileFullPath];
-        if (!shardHandler) {
-            cerr << "Err: ShardHandler::ReadNextShard: null handler." << endl;
-            return -1;
-        }
-    } else {
-        string startTagForShard = (ShardType_WordDocument == shardType) ? "w:body" :
-            (ShardType_ExcelSheetx == shardType) ? "sheetData" : "";
-        if (startTagForShard.empty()) {
-            cerr << "Err: ShardHandler::ReadNextShard: wrong shard type: "
-                << shardType << endl;
-        }
-        shardHandler = make_shared<ShardHandler>();
-        shardHandler->initIfNeccesary(fileFullPath, startTagForShard, shardSize);
-        mMapOfShardHandlers[fileFullPath] = shardHandler;
-    }
-    return shardHandler->readNextShard(jsonUtf8Str, isShardEnded);
-}
-
-int ShardHandler::readNextShard(string& jsonUtf8Str, bool& isShardEnded) {
-    // parse xml from file
-    ReadFileInfo readFileInfo;
-    readFileInfo.mParseXmlType = ParseXmlType_FromFile;
-    readFileInfo.mFileFullPath = mFileFullPath;
-    // readFileInfo.mFileId       = fileId;
-    // readFileInfo.mRelativePath = relativePath;
-    // readFileInfo.mWillShard    = true;
-    // readFileInfo.mShardType    = mShardType;
-    // readFileInfo.mShardSize    = mShardSize;
-    readFileInfo.mWillSaveTransformResult   = false;
-
-    MemParseHandlers handlers;
-    handlers.setWillSaveTransformResult(false);
-    handlers.setLisener(this);
-
-    int ret = ParseXml2Json(readFileInfo, &handlers);
-    if ((RetCode_UserInterruption == ret)) {
-        ret = 0;
-        cout << "[Debug] ParseXml2Json UserInterruption " << endl;
-    } else if (ret) {
-        cout << "[Error] ParseXml2Json error, ret: " << ret << endl;
-    }
-    isShardEnded = mSharedEnded;
-    jsonUtf8Str = std::move(mCurrRowShard);
-    return ret;
-}
-
-void ShardHandler::initIfNeccesary(const string& fileFullPath,
-    const string& startTagForShard, size_t shardSize) {
-    if (!mFileFullPath.empty()) {
+void ShardHandler::initIfNeccesary(ShardType shardType, size_t shardSize) {
+    if (!mStartTagForShard.empty()) {
         return;
     }
-    mFileFullPath = fileFullPath;
-    mStartTagForShard = startTagForShard;
     mShardSize = shardSize;
+    mStartTagForShard = (ShardType_WordDocument == shardType) ? ShardStrForWord_WBody :
+        (ShardType_ExcelSheetx == shardType) ? ShardStr_SheetData : "";
+    if (mStartTagForShard.empty()) {
+        cerr << "Err: ShardParser::ReadNextShard: wrong shard type: "
+            << shardType << endl;
+    }
+
+    mShardState = ShardState_InitState;
+    mCurrRowIdxForShard = 0;
+    mCurrRowShard.clear();
+    mDepthContentTag = 0;
+    mSimpleHeadOfXml.clear();
+    mSharedEnded = false;
+    mTotalSizeOfContentHasRead = 0;
 }
 
 void ShardHandler::startDocument() {
-    resetCurrShardData();
     mShardState = ShardState_InitState;
     mCurrRowIdxForShard = 0;
-    mCurrRowShard.clear();                   // json string stream of utf8 to output
-
+    mCurrRowShard.clear();
     mDepthContentTag = 0;
-    // mShardHandlerListener = make_shared<ShardHandlerEmListener>();
-    // mShardHandlerListener->onStartDocument(*this);
+    // mSimpleHeadOfXml.clear(); // Init only once
+    mSharedEnded = false;
+    mTotalSizeOfContentHasRead = 0;
 }
 
 void ShardHandler::endDocument() {
-    // if (mShardHandlerListener != nullptr) {
-    //     mShardHandlerListener->onEndDocument(*this);
-    // }
     mSharedEnded = true;
 }
 
@@ -101,7 +51,7 @@ void ShardHandler::startElement(const string& tagStr,
     switch (mShardState) {
         case ShardState_InitState:
             if (mSimpleHeadOfXml.empty()) {
-                mTagQueue.push("<" + tagStr + ">");
+                mShardStack.push(tagStr);
             }
             if (mStartTagForShard == tagStr) {
                 mShardState = ShardState_StartedSheetDataElement;
@@ -121,7 +71,7 @@ void ShardHandler::startElement(const string& tagStr,
                 mDepthContentTag++;
                 appendCurrShardData(jsonStrOfThisTag);
             } else {
-                cerr << "Err: depth is error for file: " << mFileFullPath;
+                cerr << "Err: depth is error." << endl;
             }
             break;
         case ShardState_EndedSheetDataElement:
@@ -163,14 +113,11 @@ void ShardHandler::onParsedShardData(
     }
     // cout << "mCurrRowShard: " << mCurrRowShard << endl;
 
-    deleteThisSherdDataFromFile(extraInfo.mTotalSizeOfContentHasRead);
+    // deleteThisShardDataFromBuff(extraInfo.mTotalSizeOfContentHasRead);
+    mTotalSizeOfContentHasRead = extraInfo.mTotalSizeOfContentHasRead;
     mSharedEnded = isEnded;
-    // if (mShardHandlerListener != nullptr) {
-    //     mShardHandlerListener->onParsedShardData(*this, mCurrRowShard, isEnded);
-    // }
-    // interrupt the parsing of xml file
-    cout << "Debug: onParsedShardData will throw UserInterruption(): " << endl;
 
+    // interrupt the parsing of xml file
     throw UserInterruption();
 }
 
@@ -178,59 +125,16 @@ void ShardHandler::initSimpleXmlHead() {
     if (!mSimpleHeadOfXml.empty()) {
         return;
     }
-
-    while(!mTagQueue.empty()) {
-        string elem = mTagQueue.front();
-        mSimpleHeadOfXml += elem;
-        mTagQueue.pop();
+    stack<string> tmpShardStack;
+    while (!mShardStack.empty()) {
+        tmpShardStack.push(mShardStack.top());
+        mShardStack.pop();
+    }
+    while (!tmpShardStack.empty()) {
+        mSimpleHeadOfXml += "<" + tmpShardStack.top() + ">";
+        tmpShardStack.pop();
     }
     return;
-}
-
-#include <cstdio>
-
-static int writeXmlFile2(const string& fileName, const string& fileContent) {
-    cout << "File writing start: " << fileName << std::endl;
-    std::ofstream outputFile(fileName);
-    if (!outputFile.is_open()) {
-        std::cerr << "Unable to open the file." << std::endl;
-        return 1;
-    }
-
-    outputFile << fileContent;
-
-    outputFile.close();
-
-    cout << "Debug: File writing complete: " << fileName << std::endl;
-
-    return 0;
-}
-
-int ShardHandler::deleteThisSherdDataFromFile(size_t startPosLeft) {
-    // concat with simple header of xml and left file content
-    // and write to file
-    string allContentStr;
-
-    int ret = readFileIntoString(allContentStr, mFileFullPath);
-    if (ret) {
-        cerr << "Err: deleteThisSherdDataFromFile, read err: "
-            << mFileFullPath << endl;
-    }
-
-    // printf("Debug: deleteThisSherdDataFromFile: startPosLeft: %ld\n%s\n\n\n",
-    //     startPosLeft, &allContentStr[startPosLeft]);
-
-    if (mSimpleHeadOfXml.empty()) {
-        cerr << "Err: deleteThisSherdDataFromFile, simple headOf xml is empty: "
-            << mFileFullPath << endl;
-    }
-    string outContentStr(mSimpleHeadOfXml);
-    outContentStr += allContentStr.substr(startPosLeft, allContentStr.length() - startPosLeft);
-    ret = writeXmlFile2(mFileFullPath, outContentStr);
-    if (ret) {
-        cerr << "Err: writeXmlFile2 err: " << mFileFullPath << endl;
-    }
-    return ret;
 }
 
 void ShardHandler::endElement2(const string& endTagStr,
@@ -238,7 +142,7 @@ void ShardHandler::endElement2(const string& endTagStr,
     switch (mShardState) {
         case ShardState_InitState:
             if (mSimpleHeadOfXml.empty()) {
-                mTagQueue.push("</" + endTagStr + ">");
+                mShardStack.pop();
             }
             break;
         case ShardState_StartedRowElement:
@@ -259,11 +163,8 @@ void ShardHandler::endElement2(const string& endTagStr,
             if (mStartTagForShard == endTagStr) {
                 mShardState = ShardState_EndedSheetDataElement;
                 onParsedShardData(true, extraInfo);
-                // if (mShardHandlerListener != nullptr) {
-                //     mShardHandlerListener->onEndSheetDataElement(*this);
-                // }
             } else {
-                cerr << "Err: end tag is error for file: " << mFileFullPath;
+                cerr << "Err: end tag is error for file." << endl;
             }
             break;
         case ShardState_EndedSheetDataElement:

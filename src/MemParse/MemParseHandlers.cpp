@@ -6,21 +6,6 @@
 
 #include "MemParseHandlers.h"
 
-// 解析xml大小1.16G
-// t2 = 31.1272  Memory: 9G
-// t2 = 32.3432  Memory: 9G
-// t2 = 30.7645  Memory: 8G
-
-// 解析xml大小150M
-// t2 = 3.96557
-// t2 = 3.92425
-// t2 = 3.93356
-
-// 解析xml大小150M，Nodejs
-// test: 9.276s
-// test: 7.323s
-// test: 7.449s
-
 #define WithMyParser 1
 
 void MemParseHandlers::startDocument() {
@@ -45,11 +30,11 @@ void MemParseHandlers::startElement(
 #endif
 }
 
-void MemParseHandlers::endElement(const XMLCh* const name) {
+// void MemParseHandlers::endElement(const XMLCh* const name) {
 // #if WithMyParser
 //     mJsonTransformer.endElement(name);
 // #endif
-}
+// }
 
 void MemParseHandlers::endElement2(const XMLCh* const name, const HandlerExtraInfo& extraInfo)
 {

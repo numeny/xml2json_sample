@@ -5,11 +5,7 @@
 
 #include "ExcelSharder.h"
 #include "ExcelSharderEmListener.h"
-
-// for shard xml file(sheet1.xml, sheet2.xml, etc.) of .xlsx
-const string ShardStr_SheetData     = "sheetData";
-const string ShardStr_Row           = "row";
-const string ShardStrForWord_WBody  = "w:body";
+#include "Xml2JsonCommonInternal.h"
 
 #define DepthOfStartTagForShard     1
 

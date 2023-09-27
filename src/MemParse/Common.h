@@ -48,3 +48,7 @@ private:
 
 extern int readFileIntoString(std::string &contentStr, const std::string& fileName);
 extern int readFileIntoString2(char **contentStr, size_t& outFileSize, const string& fileName);
+extern int deleteAllFile(const string& filePath);
+
+extern void setMinBuffSizeToRead(unsigned int buffSize);
+extern void setMaxBuffSizeToRead(unsigned int buffSize);

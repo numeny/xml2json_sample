@@ -10,12 +10,19 @@ Module.onRuntimeInitialized = function() {
     console.log("Module.onRuntimeInitialized: ")
 
     postMessage(response);
+    // let MinBuffSizeToRead = (1024*1024*10);
+    // let MinBuffSizeToRead = (1024*1024*5);
+    // let MaxBuffSizeToRead = (2 * MinBuffSizeToRead);
+    // console.log("Module.onRuntimeInitialized: MinBuffSizeToRead: ", MinBuffSizeToRead);
+    // console.log("Module.onRuntimeInitialized: MaxBuffSizeToRead: ", MaxBuffSizeToRead);
+    // Module.setMinBuffSizeToRead(MinBuffSizeToRead);
+    // Module.setMaxBuffSizeToRead(MaxBuffSizeToRead);
 }
 
 // console.log = function() {}
 
 // default row number for shard
-var DefaultShardRowNum = 1;
+var DefaultShardSize = 1;
 const ShardType_WordDocument = 0;
 const ShardType_ExcelSheetx = 1;
 
@@ -24,6 +31,7 @@ addEventListener("message", (message) => {
     "readAsJSON": readAsJSON,
     "readNextShard": readNextShard,
     "shardingParse": shardingParse,
+    "convertXML2JSON": convertXML2JSON,
     "getDocumentSectPrArray": getDocumentSectPrArray,
     "getExcelSheetHeadAndTail": getExcelSheetHeadAndTail,
     "writeFile": writeFile,
@@ -54,26 +62,21 @@ function handleEscapedChars(content) {
 }
 
 function readAsJSON(param) {
-    if (!param) {
-        console.error("Err: worker readAsJSON no param.");
-        return;
-    }
     if (!param?.relativePath.endsWith("\.xml")) {
-        // FIXME, TODO
+        console.error("Err: worker readAsJSON not xml file: ", param);
         return;
     }
     let shardInfo = getShardInfo(param);
-    let fileContent;
     let ret;
     try {
         ret = Module.readAsJSON(param.fileFullPath,
-            param.fileId, param.relativePath, param.willShard,
-            param.shardType, param.shardRowNum, !param.willShard && param.willSaveTransformResult);
-        fileContent = ret.fileContent;
+            param.fileId, param.relativePath, shardInfo.willShard,
+            shardInfo.shardType, shardInfo.shardSize, shardInfo.willSaveTransformResult);
     } catch (error) {
         console.error("Err: Module.readAsJSON param:",
             param, error.stack);
     }
+    let fileContent = ret?.fileContent;
     if (fileContent?.length > 0) {
         try {
             fileContent = new TextDecoder().decode(fileContent);
@@ -101,10 +104,6 @@ function readNextShard(param) {
     let ret;
     try {
         console.log("worker readNextShard, param: ", param);
-        console.log("worker readNextShard, fileFullPath: ", param.fileFullPath);
-        console.log("worker readNextShard, shardType: ", param.shardType);
-        console.log("worker readNextShard, shardSize: ", param.shardSize);
-
         ret = Module.readNextShard(param.fileFullPath,
             param.shardType, param.shardSize);
         fileContent = ret?.fileContent;
@@ -135,20 +134,6 @@ function readNextShard(param) {
     Module.freeNativeString(ret?.nativeStringPointer);
 }
 
-function classof(obj) {
-    if(typeof(obj)==="undefined")return "undefined";
-    if(obj===null)return "Null";
-    var res = Object.prototype.toString.call(obj).match(/^\[object\s(.*)\]$/)[1];
-    if(res==="Object"){
-        res = obj.constructor.name;
-        if(typeof(res)!='string' || res.length==0){
-            if(obj instanceof jQuery)return "jQuery";// jQuery build stranges Objects
-            if(obj instanceof Array)return "Array";// Array prototype is very sneaky
-            return "Object";
-        }
-    }
-    return res;
-}
 function getDocumentSectPrArray(param) {
     let fileContent;
     let ret;
@@ -235,9 +220,6 @@ function shardingParse(param) {
             try {
                 fileContent = new TextDecoder().decode(fileContent);
                 fileContent = JSON.parse(fileContent);
-                // ===================
-                // =================
-                // ============= move to bamboo
                 retRes = true;
             } catch (err) {
                 console.error("parse json error: ", param, err, fileContent);
@@ -260,6 +242,37 @@ function shardingParse(param) {
     postMessage(response);
 }
 
+function convertXML2JSON(param) {
+    let ret;
+    try {
+        ret = Module.convertXML2JSON(param?.xmlContent);
+    } catch (error) {
+        console.error("Err: Module.convertXML2JSON param:",
+            param, error.stack);
+    }
+    let jsonContent = ret?.jsonContent;
+    if (jsonContent?.length > 0) {
+        try {
+            jsonContent = new TextDecoder().decode(jsonContent)
+            jsonContent = JSON.parse(jsonContent)
+        } catch (err) {
+            console.error("parse json error: ", param, err, jsonContent)
+        }
+    } else {
+        jsonContent = {}
+    }
+
+    var response = {
+        command: "onConvertXML2JSONComplete",
+        param: param,
+        result: {
+            jsonContent: jsonContent,
+        },
+    }
+    postMessage(response);
+    Module.freeNativeString(ret?.nativeStringPointer);
+}
+
 function writeFile(param) {
     var docFileName = 'f.xml';
     var ret = Module.writeXmlFile(docFileName, param);
@@ -278,7 +291,8 @@ function getShardInfo(param) {
     return {
         willShard: param.willShard,
         shardType: param.shardType,
-        shardRowNum: param?.shardRowNum ? param?.shardRowNum : DefaultShardRowNum,
+        shardSize: param?.shardSize ? param?.shardSize : DefaultShardSize,
+        willSaveTransformResult: !param.willShard && param.willSaveTransformResult,
     }
 }
 function getShardType(param) {

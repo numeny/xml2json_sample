@@ -29,7 +29,7 @@ public:
     void startDocument() override;
     void endDocument() override;
     void startElement(const XMLCh* const name, AttributeList& attributes) override;
-    void endElement(const XMLCh* const name) override;
+    // void endElement(const XMLCh* const name) override;
     void endElement2(const XMLCh* const name, const HandlerExtraInfo&) override;
     void characters(const XMLCh* const chars, const XMLSize_t length) override;
 

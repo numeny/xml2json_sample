@@ -17,8 +17,6 @@ extern const string CommaStr;
 extern const string StartBracketStr;
 extern const string CloseBracketStr;
 
-class JsonTransformer;
-
 class JsonTransformerLisener {
 public:
     virtual void startDocument() {}
@@ -38,12 +36,8 @@ typedef enum {
 } StackElementState;
 
 struct StackElement {
-    StackElement(const string& tagName)
-        : mStackElementState(NoContent),
-          mTagName(tagName) {
-    }
+    StackElement() : mStackElementState(NoContent) {}
     StackElementState mStackElementState;
-    string mTagName;
 };
 
 // JsonTransformer accept xml's SAX input and trasform it to json string of utf8
@@ -60,9 +54,6 @@ public:
 
     void characters(const XMLCh* const chars, const XMLSize_t length);
     string& jsonUtf8String() { return mJsonStream; }
-
-    stack<shared_ptr<StackElement>>& currStateStack() { return mStack; }
-
 
     void setLisener(JsonTransformerLisener* lisener) { mJsonTransformerLisener = lisener; }
     void setWillSaveTransformResult(bool willSaveTransformResult) { mWillSaveTransformResult = willSaveTransformResult; }

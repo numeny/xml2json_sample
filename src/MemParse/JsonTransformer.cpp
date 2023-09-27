@@ -290,8 +290,7 @@ void JsonTransformer::startElement(const XMLCh* const name, AttributeList& attri
     appendJsonStream(jsonStrOfThisTag);
 
     // push stack new element;
-    shared_ptr<StackElement> newElement(new StackElement(tagStr));
-    // newElement->mStackElementState = NoContent;
+    shared_ptr<StackElement> newElement(new StackElement);
     mStack.push(newElement);
 
     if (mJsonTransformerLisener) {

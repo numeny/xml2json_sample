@@ -15,7 +15,7 @@
 #include <xercesc/util/PlatformUtils.hpp>
 
 #include "Common.h"
-#include "ShardHandler.h"
+#include "ShardParser.h"
 #include "XML2JsonParser.h"
 
 using namespace std;
@@ -57,18 +57,24 @@ static bool endsWith(const std::string& str, const std::string& ending) {
     }
 }
 
-#define DebugJsonStr 1
+#define DebugJsonStr 0
 
 #if !defined(EMSCRIPTEN)
+extern void setMinBuffSizeToRead(unsigned int buffSize);
+extern void setMaxBuffSizeToRead(unsigned int buffSize);
+#define DefaultShardNum 200
+unsigned int LocalMinBuffSizeToRead = (1024*1024*5);
+unsigned int LocalMaxBuffSizeToRead = (2 * LocalMinBuffSizeToRead);
 
 int main(int argC, char* argV[])
 {
     // string xmlFilePath = "/mnt/c/Users/docs/doc/机械设备_机车车辆_中文件/xl/worksheets/sheet2.xml"; // default xml file path
     // string xmlFilePath = "/mnt/c/Users/docs/doc/sheet1_1G.xml"; // default xml file path
     // string xmlFilePath = "/mnt/c/Users/docs/doc/Big.docx/word/document.xml"; // default xml file path
-    string xmlFilePath = "/mnt/c/Users/docs/doc/c.xlsx/xl/worksheets/sheet1.xml"; // default xml file path
+    // string xmlFilePath = "/mnt/c/Users/docs/doc/xml.case/specialChar6.xlsx/副本收益法作价表-0517-fix/xl/worksheets/sheet34.1.xml"; // default xml file path
     // string xmlFilePath = "/mnt/c/Users/docs/doc/P2.docx/word/document.xml"; // default xml file path
     // string xmlFilePath = "/mnt/c/Users/docs/doc/smal.xlsx/small/xl/worksheets/sheet1.xml"; // default xml file path
+    string xmlFilePath = "/mnt/c/Users/docs/doc/null.xlsx/xl/worksheets/sheet1.xml"; // default xml file path
 
     // "Usage:"
     // "       command [0|1|2|3] [xxx]"
@@ -113,6 +119,10 @@ int main(int argC, char* argV[])
             xmlFilePath = string(argV[2]);
         }
     }
+
+    setMaxBuffSizeToRead(LocalMinBuffSizeToRead);
+    setMinBuffSizeToRead(LocalMaxBuffSizeToRead);
+    cout << "main: MinBuffSizeToRead: " << LocalMinBuffSizeToRead << endl;
 
     string jsonUtf8Str; // output json string
     ReadFileInfo readFileInfo;
@@ -159,13 +169,17 @@ int main(int argC, char* argV[])
 
     if (parseFromFileDirectly) {
         if (willShard && useShardMode2) {
-            bool isShardEnded;
-            int ret = ShardHandler::readNextShard(jsonUtf8Str, isShardEnded,
-                xmlFilePath, shardType, 2);
-            if (ret) {
-                cerr << "Err: ShardHandler::readNextShard: " << xmlFilePath << endl;
-            } else {
-                cout << "Debug: ShardHandler::readNextShard: isShardEnded: " << isShardEnded << endl;
+            bool isShardEnded = false;
+            while (!isShardEnded) {
+                int ret = ShardParser::readNextShard(jsonUtf8Str, isShardEnded,
+                    xmlFilePath, shardType, DefaultShardNum);
+                if (ret) {
+                    cerr << "Err: ShardParser::readNextShard: " << xmlFilePath << endl;
+                } else {
+#if DebugJsonStr
+                    cout << "Debug: ShardParser::readNextShard: isShardEnded: " << isShardEnded << endl;
+#endif
+                }
             }
         } else {
             int ret = GetFileContent(jsonUtf8Str, xmlFilePath, "fileId",

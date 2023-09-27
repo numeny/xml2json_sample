@@ -12,136 +12,69 @@
 
         const worker = new Worker("./file_manager.js");
         let gShardDataMapArray = new Map();
-
-        // function readNextShardImpl(param) {
-        //     let shardDataInfo = getShardDataInfo(param);
-        //     while (!shardDataInfo.shardDataQueue.isEmpty()) {
-        //         let fileContent = shardDataInfo.shardDataQueue.dequeue();
-        //         // console.log("main readNextShardImpl: fileContent: ", fileContent);
-        //     }
-
-        //     if (!shardDataInfo.shardDataQueue.isEmpty() || !shardDataInfo.isShardDataEnded) {
-        //         setTimeout(function() {
-        //             readNextShardImpl(param);
-        //         }, 50);
-        //     }
-        // }
-
-        // function readNextShard(param) {
-        //     let shardDataInfo = getShardDataInfo(param);
-        //     if (!shardDataInfo.shardDataQueue.isEmpty() || !shardDataInfo.isShardDataEnded) {
-        //         setTimeout(function() {
-        //             readNextShardImpl(param);
-        //         }, 50);
-        //     }
-        // }
-        
         function onWriteFileComplete(response) {
             var param = {
                     fileId: fileId,
                     relativePath: fileId,
                     fileFullPath: fileId,
                     willShard: true,
-                    shardType: 0,
-                    shardSize: 3,
+                    shardType: 1,
+                    shardSize: 200,
                     willSaveTransformResult: true,
             };
 
-            // worker.postMessage({
-            //     command: "shardingParse",
-            //     param: param,
-            // });
-
-            // for(var a = 0; a < 1; a++) {
-            //     setTimeout(function() {
-            //         worker.postMessage({
-            //             command: "readAsJSON",
-            //             param: param,
-            //         });
-            //     }, a*20);
-            // }
             worker.postMessage({
-                command: "readNextShard",
+                command: "shardingParse",
                 param: param,
             });
+
+            readNextShard(param);
+        }
+
+        function readNextShard(param) {
+            setTimeout(function() {
+                worker.postMessage({
+                    command: "readNextShard",
+                    param: param,
+                });
+            }, 100);
         }
 
         function onReadAsJSONComplete(response) {
             let fileContent = response?.result?.fileContent;
             console.log("main onReadAsJSONComplete: fileContent: ", fileContent);
         }
+
         function onReadNextShardComplete(response) {
             let result = response?.result;
             let fileContent = result?.fileContent;
             console.log("main onReadNextShardComplete: response: ", response);
             console.log("main onReadNextShardComplete: fileContent: ", fileContent);
 
-            if (!result?.isShardEnded/* && fileContent?.length > 0*/) {
-                worker.postMessage({
-                    command: "readNextShard",
-                    param: response?.param,
-                });
+            if (!!result && !result?.isShardEnded) {
+                readNextShard(response?.param);
             }
         }
-
-        // function getShardDataInfo(param) {
-        //     let relativePath = param?.relativePath;
-        //     if (!relativePath) {
-        //         console.error("Err: getShardDataInfo: no relativePath in param: ", param);
-        //         return null;
-        //     }
-        //     let gShardDataMap;
-        //     if (!gShardDataMapArray.has(param?.fileId)) {
-        //         gShardDataMap = new Map();
-        //         gShardDataMapArray[param?.fileId] = gShardDataMap;
-        //     } else {
-        //         gShardDataMap = gShardDataMapArray[param?.fileId];
-        //     }
-        //     let shardDataInfo;
-        //     if (!gShardDataMap.has(relativePath)) {
-        //         shardDataInfo = {
-        //             shardDataQueue: new Queue(),
-        //             isShardDataEnded: false,
-        //         };
-        //         gShardDataMap[relativePath] = shardDataInfo;
-        //     }
-
-        //     return shardDataInfo;
-        // }
-        // function onParsedShardDataComplete(response) {
-        //     console.log("main onParsedShardDataComplete: response: ", response);
-        //     let result = response?.result;
-        //     if (!result) {
-        //         console.error("Err: main onParsedShardDataComplete: no response: ", response)
-        //         return;
-        //     }
-        //     let fileContent = result?.fileContent;
-        //     if (fileContent?.length > 0) {
-        //         // fileContent = new TextDecoder().decode(fileContent);
-        //         try {
-        //             fileContent = JSON.parse(fileContent);
-        //             console.log("main onParsedShardDataComplete: fileContent: ", fileContent);
-        //         } catch (err) {
-        //             console.error("Err: main onParsedShardDataComplete: ", fileContent, response?.param, err)
-        //         }
-        //     }
-        //     console.log("main onParsedShardDataComplete: fileContent: ", fileContent);
-        //     let shardDataInfo = getShardDataInfo(response?.param);
-        //     shardDataInfo.shardDataQueue.enqueue(fileContent);
-        //     shardDataInfo.isShardDataEnded = result.isEnded;
-            
-        //     readNextShard(response?.param);
-        // }
 
         function onShardingParseComplete(response) {
             var fileContent = response?.result?.fileContent;
             console.log("main onShardingParseComplete: fileContent: ", fileContent);
         }
 
-        function onEndDocumentComplete(response) {
-            // let shardDataInfo = getShardDataInfo(response?.param);
-            // shardDataInfo.isShardDataEnded = true;
-            // console.warn("onEndDocumentComplete: ", response);
+        function onConvertXML2JSONComplete(response) {
+            var jsonContent = response?.result?.jsonContent;
+            console.log("main onConvertXML2JSONComplete: response: ", response);
+            console.log("main onConvertXML2JSONComplete: jsonContent: ", jsonContent);
+        }
+
+        function onWorkerReady(response) {
+            let xmlContent = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><worksheet/>";
+            worker.postMessage({
+                command: "convertXML2JSON",
+                param: {
+                    xmlContent: xmlContent,
+                },
+            });
         }
 
         function inspectResponse() {
@@ -153,8 +86,9 @@
                     "onReadNextShardComplete": onReadNextShardComplete,
                     // "onParsedShardDataComplete": onParsedShardDataComplete,
                     "onShardingParseComplete": onShardingParseComplete,
-                    "onEndDocumentComplete": onEndDocumentComplete,
-                    // "onWorkerReady": onWorkerReady,
+                    "onConvertXML2JSONComplete": onConvertXML2JSONComplete,
+                    // "onEndDocumentComplete": onEndDocumentComplete,
+                    "onWorkerReady": onWorkerReady,
                 };
                 var response = message.data;
                 console.log("--- [Debug] main received: response:", response)
@@ -174,23 +108,12 @@
             var reader = new FileReader();
             reader.readAsArrayBuffer(file);
             reader.onload = async function () {
-                // var fileContent = reader.result;
-                // fileContent = new TextDecoder().decode(fileContent);
-                // FS.writeFile(fileId, fileContent);
-                // var fileContent = FS.readFile(fileId, { encoding: 'utf8' });
-                // console.log(fileContent);
-
-                // FS.writeFile(fileId, 'foobar');
-                // // FS.truncate(fileId, 3);
-                // console.log(FS.readFile(fileId, { encoding: 'utf8' }));
-
                 worker.postMessage({
                     command: "writeFile",
                     param: reader.result,
                 });
             }
         }
-
         console.log("11111111");
     </script>
 

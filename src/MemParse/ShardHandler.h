@@ -1,7 +1,5 @@
 #pragma once
 
-#include <xercesc/sax/AttributeList.hpp>
-
 #include <iostream>
 #include <map>
 #include <memory>
@@ -9,25 +7,14 @@
 #include <stack>
 #include <string.h>
 
+#include <xercesc/sax/AttributeList.hpp>
+
 #include "Common.h"
 #include "JsonTransformer.h"
 
 XERCES_CPP_NAMESPACE_USE
 
 using namespace std;
-
-class ShardHandler;
-
-class ShardHandlerListener {
-public:
-    virtual void onStartDocument(const ShardHandler& excelShardr) {}
-    virtual void onEndDocument(const ShardHandler& excelShardr) {}
-    virtual void onStartSheetDataElement(const ShardHandler& excelShardr,
-        const string& header, const string& simpleTail) {}
-    virtual void onEndSheetDataElement(const ShardHandler& excelShardr) {}
-    virtual void onParsedShardData(const ShardHandler& excelShardr,
-        const string& sharddData, bool isEnded) {}
-};
 
 typedef enum {
     ShardState_InitState,
@@ -40,15 +27,10 @@ typedef enum {
 
 class ShardHandler : public JsonTransformerLisener {
 public:
-    static int readNextShard(string& jsonUtf8Str, bool& isShardEnded,
-        const string& fileFullPath, ShardType shardType, unsigned int shardSize);
-
     ShardHandler() = default;
     ~ShardHandler() = default;
 
-    void initIfNeccesary(const string& fileFullPath, const string& startTagForShard,
-        size_t shardSize = DefaultShardRowNum);
-    int readNextShard(string& jsonUtf8Str, bool& isShardEnded);
+    void initIfNeccesary(ShardType shardType, size_t shardSize = DefaultShardRowNum);
 
     // interface for JsonTransformerLisener
     void startDocument() override;
@@ -60,38 +42,32 @@ public:
         const string& jsonStr, const HandlerExtraInfo& extraInfo) override;
     void characters(const string& chars) override;
 
-    // void setReadFileInfo(const ReadFileInfo& readFileInfo) { mReadFileInfo = readFileInfo; }
-    // const ReadFileInfo& getReadFileInfo() const { return mReadFileInfo; }
-
+    bool isSharedEnded() { return mSharedEnded; }
+    const string& currShardData() { return mCurrRowShard; }
+    const string& simpleHeadOfXml() {return mSimpleHeadOfXml; }
+    size_t totalSizeOfContentHasRead() { return mTotalSizeOfContentHasRead; }
 private:
     inline void appendCurrShardData(const string& jsonStr);
     inline void resetCurrShardData();
     inline void onParsedShardData(
         bool isEnded, const HandlerExtraInfo& extraInfo);
-    int deleteThisSherdDataFromFile(size_t startPosLeft);
+    int deleteThisShardDataFromBuff(size_t startPosLeft);
     void initSimpleXmlHead();
 
-    static std::map<std::string, shared_ptr<ShardHandler>> mMapOfShardHandlers;
-
-    string mFileFullPath;
-    string mStartTagForShard;
+    // input params
     size_t mShardSize;
+    string mStartTagForShard;
 
     // for shard
     ShardState mShardState = ShardState_InitState;
     uint32_t mCurrRowIdxForShard = 0;
-    string mCurrRowShard;                   // json string stream of utf8 to output
-
+    string mCurrRowShard;               // json string stream of utf8 to output
     uint32_t mDepthContentTag = 0;
-    bool mInited = false;
-
-    // shared_ptr<ShardHandlerListener> mShardHandlerListener;
-    // ReadFileInfo mReadFileInfo;
-
-    // ShardType mShardType = ShardType_WordDocument;
-    // bool mWillStartParsedContentTag = false; // whether start parsing contentTag for word's document.xml
 
     string mSimpleHeadOfXml;
     std::queue<string> mTagQueue;
     bool mSharedEnded = false;
+    size_t mTotalSizeOfContentHasRead = 0;
+
+    stack<string> mShardStack;
 };
