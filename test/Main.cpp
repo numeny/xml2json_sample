@@ -14,7 +14,7 @@
 #include <xercesc/util/OutOfMemoryException.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
 
-#include "Common.h"
+#include "Xml2JsonCommon.h"
 #include "ShardParser.h"
 #include "XML2JsonParser.h"
 

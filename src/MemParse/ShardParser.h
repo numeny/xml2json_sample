@@ -9,7 +9,7 @@
 
 #include <xercesc/sax/AttributeList.hpp>
 
-#include "Common.h"
+#include "Xml2JsonCommon.h"
 #include "JsonTransformer.h"
 
 XERCES_CPP_NAMESPACE_USE

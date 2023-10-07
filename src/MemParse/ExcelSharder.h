@@ -7,7 +7,7 @@
 #include <stack>
 #include <string.h>
 
-#include "Common.h"
+#include "Xml2JsonCommon.h"
 #include "JsonTransformer.h"
 
 XERCES_CPP_NAMESPACE_USE

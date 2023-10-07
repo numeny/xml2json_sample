@@ -7,33 +7,63 @@
 #include <string>
 #include <regex>
 
-#include "Common.h"
+#include "Xml2JsonCommon.h"
 #include "MemParseHandlers.h"
+#include "Xml2JsonCommonInternal.h"
 #include "XML2JsonParser.h"
+#include "WordSectPrTagParser.h"
 
 using namespace std;
-
-const string StrStartTag = "<w:document";
-const string StrEndTag = "</w:document>";
-const string StrBrack = ">";
-
 namespace {
 
-int getAllTagOfSectPrForWordDocument(string& outTagArrays, const string& content) {
-    const string StrStartTag = "<w:sectPr";
-    const string StrEndTag = "</w:sectPr>";
-    const size_t LenStartTag = StrStartTag.length();
-    const size_t LenEndTag = StrEndTag.length();
-    size_t lenTotalContent = content.length();
-    size_t currStartTagPos;
+const string StrDocumentStartTag    = "<w:document";
+const string StrDocumentEndTag      = "</w:document>";
+const string StrCloseBrack          = ">";
+const string StrSectPrTag           = "w:sectPr";
+const string StrSectPrTag2           = "sectPr";
+const string StrSectPrStartTag      = "<w:sectPr";
+const string StrSectPrEndTag        = "</w:sectPr>";
 
-    for (size_t currPos = 0; currPos < lenTotalContent;) {
-        //  search first <w:sectPr> from currPos of content
+} // namespace
+
+int WordSectPrTagParser::isLastTagSectPr(bool& isLastTagSectPr) {
+    isLastTagSectPr = false;
+    auto currPos = mFileContent.rfind(ShardStrForWord_WBody_EndTag);
+    if (currPos == string::npos) {
+        cerr << "Err: can't find </w:body>" << endl;
+        return -1;
+    }
+    currPos = mFileContent.rfind("</", currPos - 1);
+    if (currPos == string::npos) {
+        cerr << "Err: can't find </w:body>'s previous tag" << endl;
+        return -1;
+    }
+    auto currPos2 = mFileContent.find(StrCloseBrack, currPos);
+    if (currPos2 == string::npos) {
+        cerr << "Err: can't find previous endTag" << endl;
+        return -1;
+    }
+    string subString = mFileContent.substr(
+        // currPos + 2, (currPos2 - 1) - (currPos + 2) + 1);
+        currPos + 2, currPos2 - currPos - 2);
+    isLastTagSectPr = ((subString == StrSectPrTag) || (subString == StrSectPrTag2));
+    return 0;
+}
+
+int WordSectPrTagParser::getAllTagOfSectPrForWordDocument(size_t& nextSearchPos) {
+    const size_t LenStartTag = StrSectPrStartTag.length();
+    const size_t LenEndTag = StrSectPrEndTag.length();
+    size_t lenTotalContent = mFileContent.length();
+    size_t currStartTagPos;
+    string sectPrArrayStr;
+    size_t currPos;
+    for (currPos = nextSearchPos; currPos < lenTotalContent;) {
+        //  search first <w:sectPr> from currPos of mFileContent
         //  if not found; then:
         //      search end
         //      return data;
         //  record currStartTagPos of <w:sectPr>;
-        //  search first </w:sectPr> from current <w:sectPr>'s tail of content
+        //  search first </w:sectPr> from current <w:sectPr>'s tail of mFileContent
         //  if not found; then:
         //      handle error;
         //      return;
@@ -42,87 +72,146 @@ int getAllTagOfSectPrForWordDocument(string& outTagArrays, const string& content
         //  set currPos = the next position of end of current </w:sectPr>
         //  continue;
 
-        // search first <w:sectPr> from currPos of content
-        currPos = content.find(StrStartTag, currPos);
+        // search first <w:sectPr> from currPos of mFileContent
+        currPos = mFileContent.find(StrSectPrStartTag, currPos);
         if (currPos == string::npos) {
             // search end
-            return 0;
+            break;
         }
         // record currStartTagPos of <w:sectPr>;
         currStartTagPos = currPos;
 
-        //  search first </w:sectPr> from current <w:sectPr>'s tail of content
-        currPos = content.find(StrEndTag, currPos + LenStartTag);
+        //  search first </w:sectPr> from current <w:sectPr>'s tail of mFileContent
+        currPos = mFileContent.find(StrSectPrEndTag, currPos + LenStartTag);
         if (currPos == string::npos) {
-            cout << "Err: can't find </w:sectPr> for <w:sectPr> of pos: " << currStartTagPos << endl;
-            // FIXME, handle error;
+            cerr << "Err: can't find </w:sectPr> for <w:sectPr> of pos: " << currStartTagPos << endl;
             return -1;
         }
+        nextSearchPos = currPos;
         //  get string from currStartTagPos to the end of current </w:sectPr>
         currPos = currPos + LenEndTag;
-        string subString = content.substr(
+        string subString = mFileContent.substr(
             currStartTagPos, currPos - currStartTagPos);
-        // cout << "Debug: subString: " << subString << endl;
-        outTagArrays += subString;
+        sectPrArrayStr += subString;
     }
-    return 0;
-}
-
-int getHeadForWordDocument(string& outTagArrays, const string& content) {
-    auto currPos = content.find(StrStartTag);
-    if (currPos == string::npos) {
-        return -1;
-    }
-    currPos = content.find(StrBrack, currPos);
-    if (currPos == string::npos) {
-        return -1;
-    }
-    outTagArrays = content.substr(0, currPos+1);
-    return 0;
-}
-
-int getSectPrTagStrForWordDocument(string& outStr, const string& fileName) {
-    string content;
-    int ret = readFileIntoString(content, fileName);
+    bool isTagSectPr = false;
+    auto ret = isLastTagSectPr(isTagSectPr);
     if (ret) {
-        cerr << "Err: readFileIntoString: " << fileName << endl;
+        cerr << "Err: get isLastTagSectPr: " << mFileName << endl;
         return ret;
     }
-    if (!content.length()) {
-        cout << "Err: no content: " << fileName << endl;
+    mXmlStrToParse += string(ShardStrForWord_WBody_StartTag + " lastSect=")
+        + (isTagSectPr ? "\"true\"" : "\"false\"") + StrCloseBrack;
+    mXmlStrToParse += sectPrArrayStr;
+    mXmlStrToParse += ShardStrForWord_WBody_EndTag;// "</w:body>"
+
+    return 0;
+}
+
+int WordSectPrTagParser::getContentBetweenStr(
+    size_t nextSearchPos, const string& startStr,
+    const string& endStr, bool willSearchCloseBrack) {
+    auto startPos = mFileContent.find(startStr, nextSearchPos);
+    if (startPos == string::npos) {
+        cerr << "Err: get sectPr's brothers: no : " << startStr << endl;
+        return -1;
+    }
+    if (willSearchCloseBrack) {
+        startPos = mFileContent.find(StrCloseBrack, startPos);
+        if (startPos == string::npos) {
+            cerr << "Err: get sectPr's brothers: no close brack." << endl;
+            return -1;
+        }
+    }
+    auto endPos = mFileContent.find(endStr, startPos);
+    if (endPos == string::npos) {
+        cerr << "Err: get sectPr's brothers: no: " << endStr << endl;
+        return -1;
+    }
+    endPos--;
+    if (willSearchCloseBrack) {
+        startPos++;
+    } else {
+        startPos = startPos + startStr.length();
+    }
+    mXmlStrToParse += mFileContent.substr(startPos, endPos - startPos + 1);
+    return 0;
+}
+
+int WordSectPrTagParser::getHeadForWordDocument(size_t& nextSearchPos) {
+    auto currPos = mFileContent.find(StrDocumentStartTag);
+    if (currPos == string::npos) {
+        cerr << "Err: get sectPr: no <w:document>" << endl;
+        return -1;
+    }
+    currPos = mFileContent.find(StrCloseBrack, currPos);
+    if (currPos == string::npos) {
+        cerr << "Err: get sectPr: no <w:document> close" << endl;
+        return -1;
+    }
+    mXmlStrToParse = mFileContent.substr(0, currPos + 1);
+    nextSearchPos = currPos + 1;
+    return 0;
+}
+
+int WordSectPrTagParser::getSectPrTagStrForWordDocument(string& outStr) {
+    int ret = readFileIntoString(mFileContent, mFileName);
+    if (ret) {
+        cerr << "Err: readFileIntoString: " << mFileName << endl;
+        return ret;
+    }
+    if (!mFileContent.length()) {
+        cout << "Err: get sectPr: no content: " << mFileName << endl;
         return -1;
     }
     DurationTimer dt("getAllTagOfSectPrForWordDocument");
+    size_t nextSearchPos;
+    ret = getHeadForWordDocument(nextSearchPos);
+    if (ret) {
+        cout << "Err: get <w:sectPr>, no <w:document>: " << mFileName << endl;
+        return ret;
+    }
+    // get <w:body>'s previous brothers
+    ret = getContentBetweenStr(0, StrDocumentStartTag,
+        ShardStrForWord_WBody_StartTag, true);
+    if (ret) {
+        cout << "Err: get <w:sectPr>: get body's pre brothers : " << mFileName << endl;
+        return ret;
+    }
+    // get <w:sectPr> array
+    ret = getAllTagOfSectPrForWordDocument(nextSearchPos);
+    if (ret) {
+        cout << "Err: get <w:sectPr>: invalid sectPr: " << mFileName << endl;
+        return ret;
+    }
 
-    ret = getHeadForWordDocument(outStr, content);
+    // get </w:body>'s post brothers
+    ret = getContentBetweenStr(nextSearchPos,
+        ShardStrForWord_WBody_EndTag, StrDocumentEndTag);
     if (ret) {
-        cout << "Err: no <w:document>: " << fileName << endl;
+        cout << "Err: get <w:sectPr>: get body's post brothers: " << mFileName << endl;
         return ret;
     }
-    ret = getAllTagOfSectPrForWordDocument(outStr, content);
-    if (ret) {
-        cout << "Err: get <w:sectPr>: " << fileName << endl;
-        return ret;
-    }
-    outStr += StrEndTag;
+    mXmlStrToParse += StrDocumentEndTag;
+    outStr = std::move(mXmlStrToParse);
     // cout << "all: " << outStr << endl;
     return 0;
 }
-
-} // namespace
 
 // Get json array of </w:sectPr> for Word's word/document.xml
 int GetDocumentSectPrArray(string& jsonStr, const string& fileName) {
     // get <w:sectPr> array of xml content
     string xmlStr;
-    int ret = getSectPrTagStrForWordDocument(xmlStr, fileName);
+    WordSectPrTagParser sectPrTagParser(fileName);
+    int ret = sectPrTagParser.getSectPrTagStrForWordDocument(xmlStr);
     if (ret) {
-        cout << "Err: get <w:sectPr> for xml: " << fileName << endl;
+        cerr << "Err: get <w:sectPr> for xml: " << fileName << endl;
         return ret;
     }
     if (xmlStr.length() <= 0) {
         return 0;
     }
+    cout << "GetDocumentSectPrArray: xmlStr: " << xmlStr << endl;
 
     // get json for xml content
     MemParseHandlers handlers;
@@ -133,7 +222,7 @@ int GetDocumentSectPrArray(string& jsonStr, const string& fileName) {
 
     ret = ParseXml2Json(readFileInfo, &handlers);
     if (ret) {
-        cout << "[Error] ParseXml2Json error, fileName: " << fileName << endl;
+        cerr << "Err: get SectPr: ParseXml2Json error, fileName: " << fileName << endl;
     } else {
         jsonStr = std::move(handlers.jsonUtf8String());
     }

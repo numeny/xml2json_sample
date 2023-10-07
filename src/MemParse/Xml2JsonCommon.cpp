@@ -3,7 +3,7 @@
 #include <string>
 #include <filesystem>
 
-#include "Common.h"
+#include "Xml2JsonCommon.h"
 
 using namespace std;
 
@@ -111,7 +111,7 @@ int deleteAllFile(const string& filePath) {
     return ret;
 }
 
-#define EnableTimeCalculation 0
+#define EnableTimeCalculation 1
 
 DurationTimer::DurationTimer() {
 #if EnableTimeCalculation

@@ -3,7 +3,7 @@
 #include <string>
 #include <xercesc/sax/HandlerBase.hpp>
 
-#include "Common.h"
+#include "Xml2JsonCommon.h"
 
 using namespace std;
 XERCES_CPP_NAMESPACE_USE
