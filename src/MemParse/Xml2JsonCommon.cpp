@@ -100,8 +100,7 @@ int deleteAllFile(const string& filePath) {
     try {
         if (!filesystem::remove_all(filePath)) {
             ret = -1;
-            cerr << "Err: remove_all:"
-                << filePath << endl;
+            cerr << "Err: remove_all:" << filePath << endl;
         }
     } catch (const exception& e) {
         ret = -1;
@@ -111,7 +110,7 @@ int deleteAllFile(const string& filePath) {
     return ret;
 }
 
-#define EnableTimeCalculation 1
+#define EnableTimeCalculation 0
 
 DurationTimer::DurationTimer() {
 #if EnableTimeCalculation

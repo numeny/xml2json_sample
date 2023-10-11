@@ -1,34 +1,37 @@
 <html>
     <script src="xml2json_bin.js"></script>
-    <script src="queue.js"></script>
 
     <input type="file"
     id="avatar" name="ofd文件"
     accept="doc" onchange="onchangeFile(this.files[0])">
     <script>
         let fileId = 'f.xml';
-        const gMainShardDataQueue = new Queue();
-        let gMainIsShardDataEnded = false;
 
         const worker = new Worker("./file_manager.js");
         let gShardDataMapArray = new Map();
         function onWriteFileComplete(response) {
             var param = {
-                    fileId: fileId,
-                    relativePath: fileId,
-                    fileFullPath: fileId,
-                    willShard: true,
-                    shardType: 1,
-                    shardSize: 200,
-                    willSaveTransformResult: true,
+                fileId: fileId,
+                relativePath: fileId,
+                fileFullPath: fileId,
+                willShard: false,
+                shardType: 1,
+                shardSize: 200,
+                willSaveTransformResult: true,
             };
-
+/*
             worker.postMessage({
                 command: "shardingParse",
                 param: param,
             });
-
             readNextShard(param);
+*/
+            // for (var idx = 0; idx < 4; idx++) {
+                worker.postMessage({
+                    command: "readAsJSON",
+                    param: param,
+                });
+            // }
         }
 
         function readNextShard(param) {

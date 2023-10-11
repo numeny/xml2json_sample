@@ -113,7 +113,6 @@ void ShardHandler::onParsedShardData(
     }
     // cout << "mCurrRowShard: " << mCurrRowShard << endl;
 
-    // deleteThisShardDataFromBuff(extraInfo.mTotalSizeOfContentHasRead);
     mTotalSizeOfContentHasRead = extraInfo.mTotalSizeOfContentHasRead;
     mSharedEnded = isEnded;
 

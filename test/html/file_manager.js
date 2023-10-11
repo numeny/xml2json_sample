@@ -1,6 +1,5 @@
 
 importScripts('xml2json_bin.js');
-importScripts('queue.js');
 
 Module = {};
 Module.onRuntimeInitialized = function() {
@@ -32,8 +31,6 @@ addEventListener("message", (message) => {
     "readNextShard": readNextShard,
     "shardingParse": shardingParse,
     "convertXML2JSON": convertXML2JSON,
-    "getDocumentSectPrArray": getDocumentSectPrArray,
-    "getExcelSheetHeadAndTail": getExcelSheetHeadAndTail,
     "writeFile": writeFile,
   };  
 
@@ -100,102 +97,43 @@ function readAsJSON(param) {
 }
 
 function readNextShard(param) {
-    let fileContent;
     let ret;
     try {
         console.log("worker readNextShard, param: ", param);
         ret = Module.readNextShard(param.fileFullPath,
             param.shardType, param.shardSize);
-        fileContent = ret?.fileContent;
     } catch (error) {
         console.error("Err: Module.readNextShard param:",
             param, error.stack);
     }
+    let fileContent = ret?.fileContent;
     if (fileContent?.length > 0) {
-        fileContent = new TextDecoder().decode(fileContent)
         try {
+            fileContent = new TextDecoder().decode(fileContent);
             fileContent = JSON.parse(fileContent)
         } catch (err) {
+            fileContent = {}
             console.error("parse json error: ", param, err, fileContent)
         }
     } else {
         fileContent = {}
     }
 
+    let isShardEnded = !ret || !!ret?.isShardEnded;
     var response = {
         command: "onReadNextShardComplete",
         param: param,
         result: {
             fileContent: fileContent,
-            isShardEnded: !ret || !!ret?.isShardEnded,
+            isShardEnded: isShardEnded,
         },
     }
     postMessage(response);
+    // delete native memory to avoid memory leak
     Module.freeNativeString(ret?.nativeStringPointer);
-}
-
-function getDocumentSectPrArray(param) {
-    let fileContent;
-    let ret;
-    try {
-        ret = Module.getDocumentSectPrArray(param.fileFullPath);
-        fileContent = ret?.fileContent;
-    } catch (error) {
-        console.error("Err: Module.getDocumentSectPrArray param:",
-            param, error.stack);
+    if (isShardEnded) {
+        deleteFileInternal(param, false);
     }
-    if (fileContent?.length > 0) {
-        try {
-            fileContent = new TextDecoder().decode(fileContent)
-            fileContent = JSON.parse(fileContent)
-        } catch (err) {
-            console.error("parse json error: ", param, err, fileContent)
-        }
-    } else {
-        fileContent = {}
-    }
-
-    var response = {
-        command: "onGetDocumentSectPrArrayComplete",
-        param: param,
-        result: {
-            fileContent: fileContent,
-        },
-    }
-    postMessage(response);
-    Module.freeNativeString(ret?.nativeStringPointer);    
-}
-
-function getExcelSheetHeadAndTail(param) {
-    let fileContent;
-    let ret;
-    try {
-        ret = Module.getExcelSheetHeadAndTail(param.fileFullPath);
-        fileContent = ret?.fileContent;
-    } catch (error) {
-        console.error("Err: Module.getExcelSheetHeadAndTail param:",
-            param, error.stack);
-    }
-    if (fileContent?.length > 0) {
-        fileContent = new TextDecoder().decode(fileContent)
-        try {
-            fileContent = JSON.parse(fileContent)
-        } catch (err) {
-            console.error("parse json error: ", param, err, fileContent)
-        }
-    } else {
-        fileContent = {}
-    }
-
-    var response = {
-        command: "onGetExcelSheetHeadAndTailComplete",
-        param: param,
-        result: {
-            fileContent: fileContent,
-        },
-    }
-    postMessage(response);
-    Module.freeNativeString(ret?.nativeStringPointer);
 }
 
 function shardingParse(param) {
@@ -253,7 +191,7 @@ function convertXML2JSON(param) {
     let jsonContent = ret?.jsonContent;
     if (jsonContent?.length > 0) {
         try {
-            jsonContent = new TextDecoder().decode(jsonContent)
+            jsonContent = new TextDecoder().decode(jsonContent);
             jsonContent = JSON.parse(jsonContent)
         } catch (err) {
             console.error("parse json error: ", param, err, jsonContent)
@@ -283,6 +221,29 @@ function writeFile(param) {
     postMessage(response);
 }
 
+function deleteFileInternal(param, willInform) {
+    if (!param) {
+        console.error("Err: deleteFileInternal: param is null");
+        return;
+    }
+    param.willInform = willInform;
+    deleteFile(param);
+}
+
+function deleteFile(param) {
+    if (!param) {
+        console.error("Err: worker deleteFile: param is null");
+        return;
+    }
+    Module.deleteFile(param?.fileFullPath);
+    if (param?.willInform == undefined || !!param?.willInform) {
+        var response = {
+            command: "onDeleteFileComplete",
+            param: param,
+        }
+        postMessage(response);
+    }
+}
 
 function getShardInfo(param) {
     if (!param) {

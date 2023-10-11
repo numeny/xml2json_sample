@@ -65,30 +65,19 @@ emscripten::val readAsJSON(const string& fileFullPath,
     bool willShard, int shardType, unsigned int shardSize, bool willSaveTransformResult) {
     DurationTimer dt("readAsJSON: " + fileFullPath);
     string *jsonUtf8Str = new string();
-    // readFileIntoString(*jsonUtf8Str, fileFullPath);
     int ret = GetFileContent(*jsonUtf8Str, fileFullPath, fileId,
         relativePath, willShard, (ShardType)shardType,
         shardSize, willSaveTransformResult);
     if (ret) {
         cerr << "Err: readAsJSON" << endl;
     }
-    try {
-        if (!std::filesystem::remove(fileFullPath)) {
-            cerr << "Err: delete file:" << fileFullPath << std::endl;
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Err: delete file:" << fileFullPath << ", exception: " << e.what() << std::endl;
-    }
 
 	emscripten::val rst = emscripten::val::object();
-    auto buff = emscripten::val(emscripten::typed_memory_view(
-            jsonUtf8Str->length(), jsonUtf8Str->c_str()));
+    auto buff = emscripten::val(
+        emscripten::typed_memory_view(jsonUtf8Str->length(), jsonUtf8Str->c_str()));
     rst.set("fileContent", buff);
     rst.set("nativePointer", reinterpret_cast<int>(jsonUtf8Str));
     return rst;
-
-    // return emscripten::val(emscripten::typed_memory_view(
-    //     jsonUtf8Str->length(), jsonUtf8Str->c_str()));
 }
 
 emscripten::val getDocumentSectPrArray(const string& fileFullPath) {
@@ -101,16 +90,11 @@ emscripten::val getDocumentSectPrArray(const string& fileFullPath) {
     }
 
     emscripten::val rst = emscripten::val::object();
-    auto buff = emscripten::val(emscripten::typed_memory_view(
-            jsonUtf8Str->length(), jsonUtf8Str->c_str()));
+    auto buff = emscripten::val(
+        emscripten::typed_memory_view(jsonUtf8Str->length(), jsonUtf8Str->c_str()));
     rst.set("fileContent", buff);
     rst.set("nativeStringPointer", reinterpret_cast<int>(jsonUtf8Str));
     return rst;
-
-    // return emscripten::val(emscripten::typed_memory_view(
-    //     jsonUtf8Str->length(), jsonUtf8Str->c_str()));
-    // auto buff = emscripten::val::global("ArrayBuffer").new_(10);
-    // return buff;
 }
 
 emscripten::val getExcelSheetHeadAndTail(const string& fileFullPath) {
@@ -123,14 +107,11 @@ emscripten::val getExcelSheetHeadAndTail(const string& fileFullPath) {
         cerr << "Err: getExcelSheetHeadAndTail: " << fileFullPath << endl;
     }
 	emscripten::val rst = emscripten::val::object();
-    auto buff = emscripten::val(emscripten::typed_memory_view(
-            jsonUtf8Str->length(), jsonUtf8Str->c_str()));
+    auto buff = emscripten::val(
+        emscripten::typed_memory_view(jsonUtf8Str->length(), jsonUtf8Str->c_str()));
     rst.set("fileContent", buff);
     rst.set("nativeStringPointer", reinterpret_cast<int>(jsonUtf8Str));
     return rst;
-
-    // return emscripten::val(emscripten::typed_memory_view(
-    //     jsonUtf8Str->length(), jsonUtf8Str->c_str()));
 }
 
 emscripten::val convertXML2JSON(const string& xmlContent) {
@@ -140,8 +121,8 @@ emscripten::val convertXML2JSON(const string& xmlContent) {
         cerr << "Err: ConvertXML2JSON: " << xmlContent << endl;
     }
     emscripten::val rst = emscripten::val::object();
-    auto buff = emscripten::val(emscripten::typed_memory_view(
-            jsonUtf8Str->length(), jsonUtf8Str->c_str()));
+    auto buff = emscripten::val(
+        emscripten::typed_memory_view(jsonUtf8Str->length(), jsonUtf8Str->c_str()));
     rst.set("jsonContent", buff);
     rst.set("nativeStringPointer", reinterpret_cast<int>(jsonUtf8Str));
     return rst;
@@ -166,19 +147,27 @@ emscripten::val readNextShard(const string& fileFullPath,
         cerr << "Err: readNextShard" << endl;
     }
 	emscripten::val rst = emscripten::val::object();
-    auto buff = emscripten::val(emscripten::typed_memory_view(
-            jsonUtf8Str->length(), jsonUtf8Str->c_str()));
+    auto buff = emscripten::val(
+        emscripten::typed_memory_view(jsonUtf8Str->length(), jsonUtf8Str->c_str()));
     rst.set("fileContent", buff);
     rst.set("isShardEnded", isShardEnded);
     rst.set("nativeStringPointer", reinterpret_cast<int>(jsonUtf8Str));
 
     return rst;
- }
+}
+
+void deleteFile(const string& fileFullPath) {
+    auto ret = deleteAllFile(fileFullPath);
+    if (ret) {
+        cerr << "Err: deleteFile: " << fileFullPath << endl;
+    }
+}
 
 EMSCRIPTEN_BINDINGS(my_module22) {
   emscripten::function("writeXmlFile", &writeXmlFile);
   emscripten::function("readAsJSON", &readAsJSON);
   emscripten::function("readNextShard", &readNextShard);
+  emscripten::function("deleteFile", &deleteFile);
   emscripten::function("convertXML2JSON", &convertXML2JSON);
   emscripten::function("getDocumentSectPrArray", &getDocumentSectPrArray);
   emscripten::function("getExcelSheetHeadAndTail", &getExcelSheetHeadAndTail);

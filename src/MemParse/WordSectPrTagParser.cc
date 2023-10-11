@@ -211,7 +211,6 @@ int GetDocumentSectPrArray(string& jsonStr, const string& fileName) {
     if (xmlStr.length() <= 0) {
         return 0;
     }
-    cout << "GetDocumentSectPrArray: xmlStr: " << xmlStr << endl;
 
     // get json for xml content
     MemParseHandlers handlers;

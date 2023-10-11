@@ -36,13 +36,6 @@ int ShardParser::readNextShard(string& jsonUtf8Str, bool& isShardEnded,
         if (mMapOfShardParsers.find(fileFullPath) != mMapOfShardParsers.end()) {
             mMapOfShardParsers.erase(fileFullPath);
         }
-        // mSharedEnded = false;
-#if defined(EMSCRIPTEN)
-        int ret2 = deleteAllFile(fileFullPath);
-        if (ret2) {
-            cerr << "Err: ShardParser::readNextShard delete file: " << fileFullPath << endl;
-        }
-#endif
     }
     return ret;
 }
