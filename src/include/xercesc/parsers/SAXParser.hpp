@@ -2027,6 +2027,9 @@ public :
     );
     //@}
 
+    // start bisheng, add by bdg
+    size_t totalSizeOfContentHasRead();
+    // end bisheng
 protected :
     // -----------------------------------------------------------------------
     //  Protected Methods

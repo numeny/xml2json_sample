@@ -7,6 +7,7 @@
 #include "MemParseHandlers.h"
 #include "ShardHandler.h"
 #include "ShardParser.h"
+#include "Xml2JsonCommonInternal.h"
 #include "XML2JsonParser.h"
 
 size_t MinBuffSizeToRead = (1024*1024*10);
@@ -62,7 +63,6 @@ int ShardParser::readNextShard(string& jsonUtf8Str, bool& isShardEnded) {
         cerr << "Err: ParseXml2Json, ret: " << ret << endl;
     }
     deleteThisShardDataFromBuff(mShardHandler->totalSizeOfContentHasRead());
-
     isShardEnded = mShardHandler->isSharedEnded();
     jsonUtf8Str = std::move(mShardHandler->currShardData());
     return ret;

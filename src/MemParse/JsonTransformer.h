@@ -1,7 +1,7 @@
 #pragma once
 
+#include <xercesc/parsers/SAXParser.hpp>
 #include <xercesc/sax/AttributeList.hpp>
-#include <xercesc/sax/HandlerBase.hpp>
 
 #include <iostream>
 #include <memory>
@@ -24,9 +24,8 @@ public:
     virtual void startElement(const string& tagStr,
         AttributeList& attributes, const string& jsonStrOfThisTag) {}
     virtual void endElement(const string& tagStr, const string& jsonStr) {}
-    virtual void endElement2(const string& tagStr,
-        const string& jsonStr, const HandlerExtraInfo& extraInfo) {}
     virtual void characters(const string& chars) {}
+    virtual void setSAXParser(SAXParser* parser) {}
 };
 
 typedef enum {
@@ -49,14 +48,18 @@ public:
     void startDocument();
     void endDocument();
     void startElement(const XMLCh* const name, AttributeList& attributes);
-    // void endElement(const XMLCh* const name);
-    void endElement2(const XMLCh* const name, const HandlerExtraInfo&);
+    void endElement(const XMLCh* const name);
 
     void characters(const XMLCh* const chars, const XMLSize_t length);
     string& jsonUtf8String() { return mJsonStream; }
 
     void setLisener(JsonTransformerLisener* lisener) { mJsonTransformerLisener = lisener; }
     void setWillSaveTransformResult(bool willSaveTransformResult) { mWillSaveTransformResult = willSaveTransformResult; }
+    void setSAXParser(SAXParser* parser) {
+        if (mJsonTransformerLisener) {
+            mJsonTransformerLisener->setSAXParser(parser);
+        }
+    }
 
 private:
     inline void appendJsonStream(const string& jsonStr);

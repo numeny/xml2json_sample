@@ -14,24 +14,25 @@
                 fileId: fileId,
                 relativePath: fileId,
                 fileFullPath: fileId,
-                willShard: false,
+                willShard: true,
                 shardType: 1,
                 shardSize: 200,
                 willSaveTransformResult: true,
             };
-/*
+
             worker.postMessage({
                 command: "shardingParse",
                 param: param,
             });
             readNextShard(param);
-*/
-            // for (var idx = 0; idx < 4; idx++) {
+/*
+            for (var idx = 0; idx < 1; idx++) {
                 worker.postMessage({
                     command: "readAsJSON",
                     param: param,
                 });
-            // }
+            }
+*/
         }
 
         function readNextShard(param) {
@@ -45,6 +46,7 @@
 
         function onReadAsJSONComplete(response) {
             let fileContent = response?.result?.fileContent;
+            console.log("main onReadAsJSONComplete: param: ", response?.param);
             console.log("main onReadAsJSONComplete: fileContent: ", fileContent);
         }
 

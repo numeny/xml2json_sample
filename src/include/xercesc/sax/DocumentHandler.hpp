@@ -141,10 +141,6 @@ public:
     *            wrapping another exception.
     */
     virtual void endElement(const XMLCh* const name) = 0;
-    // add start bisheng, modify by bdg
-    virtual void endElement2(const XMLCh* const name,
-        const HandlerExtraInfo& extraInfo) {}
-    // end bisheng
 
   /**
     * Receive notification of ignorable whitespace in element content.

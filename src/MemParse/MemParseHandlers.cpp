@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include <xercesc/parsers/SAXParser.hpp>
 #include <xercesc/sax/AttributeList.hpp>
 #include <xercesc/sax/SAXParseException.hpp>
 #include <xercesc/sax/SAXException.hpp>
@@ -30,16 +31,10 @@ void MemParseHandlers::startElement(
 #endif
 }
 
-// void MemParseHandlers::endElement(const XMLCh* const name) {
-// #if WithMyParser
-//     mJsonTransformer.endElement(name);
-// #endif
-// }
-
-void MemParseHandlers::endElement2(const XMLCh* const name, const HandlerExtraInfo& extraInfo)
+void MemParseHandlers::endElement(const XMLCh* const name)
 {
 #if WithMyParser
-    mJsonTransformer.endElement2(name, extraInfo);
+    mJsonTransformer.endElement(name);
 #endif
 }
 

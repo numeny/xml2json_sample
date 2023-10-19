@@ -1,20 +1,14 @@
 #pragma once
 
 #include <string>
-#include <xercesc/sax/HandlerBase.hpp>
 
 #include "Xml2JsonCommon.h"
+#include "MemParseHandlers.h"
 
 using namespace std;
 XERCES_CPP_NAMESPACE_USE
 
-const int RetCode_UserInterruption = 100;
-class UserInterruption {
-public:
-    int mRetCode = RetCode_UserInterruption;
-};
-
-extern int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler);
+extern int ParseXml2Json(const ReadFileInfo& readFileInfo, MemParseHandlers* handler);
 
 extern int ParseXml2Json(string& jsonUtf8Str, const ReadFileInfo& readFileInfo);
 

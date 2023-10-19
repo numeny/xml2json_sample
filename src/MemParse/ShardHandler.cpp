@@ -96,8 +96,7 @@ static void replaceStartingSubstring(std::string& original,
     }
 }
 
-void ShardHandler::onParsedShardData(
-    bool isEnded, const HandlerExtraInfo& extraInfo) {
+void ShardHandler::onParsedShardData(bool isEnded) {
     if (!mCurrRowShard.empty()) {
         // TODO, for performance, change head at first <row> for this shard
         if (mCurrRowIdxForShard <= mShardSize) {
@@ -113,7 +112,11 @@ void ShardHandler::onParsedShardData(
     }
     // cout << "mCurrRowShard: " << mCurrRowShard << endl;
 
-    mTotalSizeOfContentHasRead = extraInfo.mTotalSizeOfContentHasRead;
+    if (mSAXParser) {
+        mTotalSizeOfContentHasRead = mSAXParser->totalSizeOfContentHasRead();
+    }
+    cout << "ShardHandler::onParsedShardData: mTotalSizeOfContentHasRead - 2: " << mTotalSizeOfContentHasRead << endl;
+
     mSharedEnded = isEnded;
 
     // interrupt the parsing of xml file
@@ -136,8 +139,8 @@ void ShardHandler::initSimpleXmlHead() {
     return;
 }
 
-void ShardHandler::endElement2(const string& endTagStr,
-    const string& jsonStrOfThisTag, const HandlerExtraInfo& extraInfo) {
+void ShardHandler::endElement(const string& endTagStr,
+    const string& jsonStrOfThisTag) {
     switch (mShardState) {
         case ShardState_InitState:
             if (mSimpleHeadOfXml.empty()) {
@@ -152,7 +155,7 @@ void ShardHandler::endElement2(const string& endTagStr,
                 mShardState = ShardState_EndedRowElement;
                 mCurrRowIdxForShard++;
                 if ((mCurrRowIdxForShard % mShardSize) == 0) {
-                    onParsedShardData(false, extraInfo);
+                    onParsedShardData(false);
                 }
             }
             break;
@@ -161,7 +164,7 @@ void ShardHandler::endElement2(const string& endTagStr,
         case ShardState_EndedRowElement:
             if (mStartTagForShard == endTagStr) {
                 mShardState = ShardState_EndedSheetDataElement;
-                onParsedShardData(true, extraInfo);
+                onParsedShardData(true);
             } else {
                 cerr << "Err: end tag is error for file." << endl;
             }
@@ -189,4 +192,8 @@ void ShardHandler::characters(const string& chars) {
         default:
             break;
     }
+}
+
+void ShardHandler::setSAXParser(SAXParser* parser) {
+    mSAXParser = parser;
 }

@@ -7,6 +7,7 @@
 #include <stack>
 #include <string.h>
 
+#include <xercesc/parsers/SAXParser.hpp>
 #include <xercesc/sax/AttributeList.hpp>
 
 #include "Xml2JsonCommon.h"
@@ -37,10 +38,9 @@ public:
     void endDocument() override;
     void startElement(const string& tagStr,
         AttributeList& attributes, const string& jsonStrOfThisTag) override;
-    // void endElement(const string& tagStr, const string& jsonStr) override;
-    void endElement2(const string& tagStr,
-        const string& jsonStr, const HandlerExtraInfo& extraInfo) override;
+    void endElement(const string& tagStr, const string& jsonStr) override;
     void characters(const string& chars) override;
+    void setSAXParser(SAXParser* parser) override;
 
     bool isSharedEnded() { return mSharedEnded; }
     const string& currShardData() { return mCurrRowShard; }
@@ -49,8 +49,7 @@ public:
 private:
     inline void appendCurrShardData(const string& jsonStr);
     inline void resetCurrShardData();
-    inline void onParsedShardData(
-        bool isEnded, const HandlerExtraInfo& extraInfo);
+    inline void onParsedShardData(bool isEnded);
     int deleteThisShardDataFromBuff(size_t startPosLeft);
     void initSimpleXmlHead();
 
@@ -70,4 +69,5 @@ private:
     size_t mTotalSizeOfContentHasRead = 0;
 
     stack<string> mShardStack;
+    SAXParser *mSAXParser;
 };

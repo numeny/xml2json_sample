@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <xercesc/parsers/SAXParser.hpp>
 #include <xercesc/sax/HandlerBase.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
 
@@ -29,14 +30,14 @@ public:
     void startDocument() override;
     void endDocument() override;
     void startElement(const XMLCh* const name, AttributeList& attributes) override;
-    // void endElement(const XMLCh* const name) override;
-    void endElement2(const XMLCh* const name, const HandlerExtraInfo&) override;
+    void endElement(const XMLCh* const name) override;
     void characters(const XMLCh* const chars, const XMLSize_t length) override;
 
     void setLisener(JsonTransformerLisener* lisener) { mJsonTransformer.setLisener(lisener); }
     void setWillSaveTransformResult(bool willSaveTransformResult) {
         mJsonTransformer.setWillSaveTransformResult(willSaveTransformResult);
     }
+    void setSAXParser(SAXParser* parser) { mJsonTransformer.setSAXParser(parser); }
 
     //  Handlers for the SAX ErrorHandler interface
     void warning(const SAXParseException& exc) override;

@@ -298,9 +298,7 @@ void JsonTransformer::startElement(const XMLCh* const name, AttributeList& attri
     }
 }
 
-// void JsonTransformer::endElement(const XMLCh* const name) {
-void JsonTransformer::endElement2(const XMLCh* const name,
-    const HandlerExtraInfo& extraInfo) {
+void JsonTransformer::endElement(const XMLCh* const name) {
     // 1. switch (stack has element and stateMachineOfLastElementInStack) {
     //     WithContent: Add "]"
     //
@@ -341,7 +339,6 @@ void JsonTransformer::endElement2(const XMLCh* const name,
 
     if (mJsonTransformerLisener) {
         mJsonTransformerLisener->endElement(tagStr, jsonStr);
-        mJsonTransformerLisener->endElement2(tagStr, jsonStr, extraInfo);
     }
 }
 

@@ -8,9 +8,10 @@
 #include <xercesc/util/OutOfMemoryException.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
 
-#include "Xml2JsonCommon.h"
 #include "ExcelSharder.h"
 #include "MemParseHandlers.h"
+#include "Xml2JsonCommon.h"
+#include "Xml2JsonCommonInternal.h"
 #include "XML2JsonParser.h"
 
 using namespace std;
@@ -43,7 +44,9 @@ int TerminateXMLPlatform() {
     return 0;
 }
 
-int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler) {
+int ParseXml2Json(const ReadFileInfo& readFileInfo, MemParseHandlers* handler) {
+    DurationTimer dt("ParseXml2Json");
+
     SAXParser::ValSchemes valScheme = SAXParser::Val_Auto;
     bool doNamespaces = false;
     bool doSchema = false;
@@ -64,6 +67,7 @@ int ParseXml2Json(const ReadFileInfo& readFileInfo, HandlerBase* handler) {
     //  document and error handlers.
     parser->setDocumentHandler(handler);
     parser->setErrorHandler(handler);
+    handler->setSAXParser(parser);
 
     //  Get the starting time and kick off the parse of the indicated
     //  file. Catch any exceptions that might propogate out of it.

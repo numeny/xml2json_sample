@@ -18,6 +18,7 @@ aux_source_directory(src/MemParse ALL_SRC)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunused-command-line-argument")
 # for native code can catch exception
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 
 macro(add_xml2json_dependency name)
   target_link_directories(${name} PUBLIC ${PROJECT_SOURCE_DIR}/lib)
@@ -38,6 +39,10 @@ add_xml2json_dependency(${TestProgram})
 
 add_library(${PROJECT_NAME} ${ALL_SRC})
 add_xml2json_dependency(${PROJECT_NAME})
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+set_target_properties(${TestProgram} PROPERTIES LINK_FLAGS "-pg")
+set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-pg")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
   set_target_properties(${TestProgram} PROPERTIES LINK_FLAGS "--bind -sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sEXIT_RUNTIME=1")

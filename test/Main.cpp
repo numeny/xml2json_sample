@@ -74,7 +74,7 @@ int main(int argC, char* argV[])
     // string xmlFilePath = "/mnt/c/Users/docs/doc/xml.case/specialChar6.xlsx/副本收益法作价表-0517-fix/xl/worksheets/sheet34.1.xml"; // default xml file path
     // string xmlFilePath = "/mnt/c/Users/docs/doc/P2.docx/word/document.xml"; // default xml file path
     // string xmlFilePath = "/mnt/c/Users/docs/doc/smal.xlsx/small/xl/worksheets/sheet1.xml"; // default xml file path
-    string xmlFilePath = "/mnt/c/Users/docs/doc/null.xlsx/xl/worksheets/sheet1.xml"; // default xml file path
+    string xmlFilePath = "/mnt/c/Users/docs/doc/performance/02d5fb473a28436b80d4f9fdd64b6465/xl/worksheets/sheet37.xml"; // default xml file path
 
     // "Usage:"
     // "       command [0|1|2|3] [xxx]"
@@ -89,6 +89,12 @@ int main(int argC, char* argV[])
     bool willShard = true;
     bool getSectPrArrayForWordDocument = false;
     bool getHeadAndTailForExcelSheet = false;
+
+        parseFromMem = false;
+        parseFromFileDirectly = true;
+        willShard = true;
+        useShardMode2 = true;
+
     if (argC >= 2) {
         if ("0" == string(argV[1])) {
             parseFromMem = true;

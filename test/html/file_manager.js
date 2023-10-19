@@ -7,7 +7,6 @@ Module.onRuntimeInitialized = function() {
         command: "onWorkerReady",
     }
     console.log("Module.onRuntimeInitialized: ")
-
     postMessage(response);
     // let MinBuffSizeToRead = (1024*1024*10);
     // let MinBuffSizeToRead = (1024*1024*5);
@@ -47,6 +46,9 @@ addEventListener("message", (message) => {
 function handleEscapedChars(content) {
     // console.log("worker handleEscapedChars none - 0");
     // \f\v\r\t\n
+    // content = content.replaceAll("\"", "\\\"");
+    // content = content.replaceAll("\\", "\\\\");
+    // content = content.replaceAll("\'", "\\\'");
     // content = content.replaceAll("\n", "\\n");
     // content = content.replaceAll("\r", "\\r");
 
@@ -73,6 +75,7 @@ function readAsJSON(param) {
         console.error("Err: Module.readAsJSON param:",
             param, error.stack);
     }
+
     let fileContent = ret?.fileContent;
     if (fileContent?.length > 0) {
         try {
@@ -84,6 +87,7 @@ function readAsJSON(param) {
     } else {
         fileContent = {}
     }
+
     var response = {
         command: "onReadAsJSONComplete",
         param: param,
@@ -94,6 +98,8 @@ function readAsJSON(param) {
     }
     postMessage(response);
     Module.freeNativeString(ret?.nativeStringPointer);
+/*
+    */
 }
 
 function readNextShard(param) {
