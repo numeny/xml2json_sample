@@ -196,10 +196,12 @@ bool appendTextWithPrefix(string& jsonStr, const XMLCh* const textStr, bool with
 
     string strText;
     XMLChToUtf8(strText, textStr, false);
+    // reserve the space in "tx"
+    string strTextTmp(strText);
     if (withPrefix) {
-        trim(strText);
+        trim(strTextTmp);
     }
-    if (strText.length() <= 0) {
+    if (strTextTmp.length() <= 0) {
         return false;
     }
 

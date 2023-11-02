@@ -18,7 +18,8 @@ aux_source_directory(src/MemParse ALL_SRC)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunused-command-line-argument")
 # for native code can catch exception
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+# for gprerf, for performance test
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 
 macro(add_xml2json_dependency name)
   target_link_directories(${name} PUBLIC ${PROJECT_SOURCE_DIR}/lib)
@@ -45,8 +46,11 @@ set_target_properties(${TestProgram} PROPERTIES LINK_FLAGS "-pg")
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-pg")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+  file(COPY ${PROJECT_SOURCE_DIR}/test/html/pre.js DESTINATION ${PROJECT_BINARY_DIR})
   set_target_properties(${TestProgram} PROPERTIES LINK_FLAGS "--bind -sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sEXIT_RUNTIME=1")
   set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--bind -sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sEXIT_RUNTIME=1")
+  # set_target_properties(${TestProgram} PROPERTIES LINK_FLAGS "--bind -sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sEXIT_RUNTIME=1 -s EXPORT_ES6=1 -s MODULARIZE=1 --closure 1 --pre-js pre.js")
+  # set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--bind -sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sEXIT_RUNTIME=1 -s EXPORT_ES6=1 -s MODULARIZE=1 --closure 1 --pre-js pre.js")
   target_compile_definitions(${TestProgram} PRIVATE EMSCRIPTEN _EMSCRIPTEN)
   target_compile_definitions(${PROJECT_NAME} PRIVATE EMSCRIPTEN _EMSCRIPTEN)
 endif ()

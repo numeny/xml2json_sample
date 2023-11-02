@@ -14,25 +14,24 @@
                 fileId: fileId,
                 relativePath: fileId,
                 fileFullPath: fileId,
-                willShard: true,
+                willShard: false,
                 shardType: 1,
-                shardSize: 200,
+                shardSize: 2000,
                 willSaveTransformResult: true,
             };
-
+/*
             worker.postMessage({
                 command: "shardingParse",
                 param: param,
             });
             readNextShard(param);
-/*
-            for (var idx = 0; idx < 1; idx++) {
+*/
+            for (var idx = 0; idx < 1000; idx++) {
                 worker.postMessage({
                     command: "readAsJSON",
                     param: param,
                 });
             }
-*/
         }
 
         function readNextShard(param) {

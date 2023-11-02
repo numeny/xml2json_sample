@@ -10,6 +10,7 @@ using namespace std;
 int readFileIntoString(std::string &contentStr, const string& fileName) {
     DurationTimer timer("readFileIntoString");
 
+    // std::ifstream inputFile(fileName.c_str(), std::ios::in | std::ios::binary);
     std::ifstream inputFile(fileName.c_str(), std::ios::ate);
 
     if (!inputFile.is_open()) {
@@ -110,7 +111,7 @@ int deleteAllFile(const string& filePath) {
     return ret;
 }
 
-#define EnableTimeCalculation 1
+#define EnableTimeCalculation 0
 
 DurationTimer::DurationTimer() {
 #if EnableTimeCalculation

@@ -62,7 +62,7 @@ static bool endsWith(const std::string& str, const std::string& ending) {
 #if !defined(EMSCRIPTEN)
 extern void setMinBuffSizeToRead(unsigned int buffSize);
 extern void setMaxBuffSizeToRead(unsigned int buffSize);
-#define DefaultShardNum 200
+#define DefaultShardNum 2000
 unsigned int LocalMinBuffSizeToRead = (1024*1024*5);
 unsigned int LocalMaxBuffSizeToRead = (2 * LocalMinBuffSizeToRead);
 
@@ -74,7 +74,7 @@ int main(int argC, char* argV[])
     // string xmlFilePath = "/mnt/c/Users/docs/doc/xml.case/specialChar6.xlsx/副本收益法作价表-0517-fix/xl/worksheets/sheet34.1.xml"; // default xml file path
     // string xmlFilePath = "/mnt/c/Users/docs/doc/P2.docx/word/document.xml"; // default xml file path
     // string xmlFilePath = "/mnt/c/Users/docs/doc/smal.xlsx/small/xl/worksheets/sheet1.xml"; // default xml file path
-    string xmlFilePath = "/mnt/c/Users/docs/doc/performance/02d5fb473a28436b80d4f9fdd64b6465/xl/worksheets/sheet37.xml"; // default xml file path
+    string xmlFilePath = "/mnt/c/Users/docs/doc/performance/02d5fb473a28436b80d4f9fdd64b6465/xl/worksheets/sheet38.xml"; // default xml file path
 
     // "Usage:"
     // "       command [0|1|2|3] [xxx]"
@@ -89,11 +89,6 @@ int main(int argC, char* argV[])
     bool willShard = true;
     bool getSectPrArrayForWordDocument = false;
     bool getHeadAndTailForExcelSheet = false;
-
-        parseFromMem = false;
-        parseFromFileDirectly = true;
-        willShard = true;
-        useShardMode2 = true;
 
     if (argC >= 2) {
         if ("0" == string(argV[1])) {

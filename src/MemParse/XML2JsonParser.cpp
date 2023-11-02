@@ -45,8 +45,6 @@ int TerminateXMLPlatform() {
 }
 
 int ParseXml2Json(const ReadFileInfo& readFileInfo, MemParseHandlers* handler) {
-    DurationTimer dt("ParseXml2Json");
-
     SAXParser::ValSchemes valScheme = SAXParser::Val_Auto;
     bool doNamespaces = false;
     bool doSchema = false;

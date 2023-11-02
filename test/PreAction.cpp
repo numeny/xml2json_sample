@@ -12,6 +12,7 @@
 #endif
 
 #include "ShardParser.h"
+#include "Xml2JsonCommon.h"
 #include "XML2JsonParser.h"
 
 using namespace std;
@@ -59,6 +60,23 @@ int writeXmlFile(const string& fileName, const string& fileContent) {
 
 
 #if defined(EMSCRIPTEN)
+
+emscripten::val readRawData(const string& fileFullPath) {
+    DurationTimer dt("readRawData: " + fileFullPath);
+    string *jsonUtf8Str = new string();
+    int ret = readFileIntoString(*jsonUtf8Str, fileFullPath);
+    if (ret) {
+        cerr << "Err: readRawData" << endl;
+    }
+    // cout << "c++ readRawData: jsonUtf8Str: " << jsonUtf8Str->length() << endl;
+
+	emscripten::val rst = emscripten::val::object();
+    auto buff = emscripten::val(
+        emscripten::typed_memory_view(jsonUtf8Str->length(), jsonUtf8Str->c_str()));
+    rst.set("fileContent", buff);
+    rst.set("nativeStringPointer", reinterpret_cast<int>(jsonUtf8Str));
+    return rst;
+}
 
 emscripten::val readAsJSON(const string& fileFullPath,
     const string& fileId, const string& relativePath,
@@ -165,6 +183,7 @@ void deleteFile(const string& fileFullPath) {
 
 EMSCRIPTEN_BINDINGS(my_module22) {
   emscripten::function("writeXmlFile", &writeXmlFile);
+  emscripten::function("readRawData", &readRawData);
   emscripten::function("readAsJSON", &readAsJSON);
   emscripten::function("readNextShard", &readNextShard);
   emscripten::function("deleteFile", &deleteFile);
@@ -172,6 +191,7 @@ EMSCRIPTEN_BINDINGS(my_module22) {
   emscripten::function("getDocumentSectPrArray", &getDocumentSectPrArray);
   emscripten::function("getExcelSheetHeadAndTail", &getExcelSheetHeadAndTail);
   emscripten::function("freeNativeString", &freeNativeString);
+  emscripten::function("freeNativePointer", &freeNativePointer);
   emscripten::function("setMinBuffSizeToRead", &setMinBuffSizeToRead);
   emscripten::function("setMaxBuffSizeToRead", &setMaxBuffSizeToRead);
 }

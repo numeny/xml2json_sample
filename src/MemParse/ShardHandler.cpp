@@ -115,8 +115,6 @@ void ShardHandler::onParsedShardData(bool isEnded) {
     if (mSAXParser) {
         mTotalSizeOfContentHasRead = mSAXParser->totalSizeOfContentHasRead();
     }
-    cout << "ShardHandler::onParsedShardData: mTotalSizeOfContentHasRead - 2: " << mTotalSizeOfContentHasRead << endl;
-
     mSharedEnded = isEnded;
 
     // interrupt the parsing of xml file

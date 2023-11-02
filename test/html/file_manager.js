@@ -98,8 +98,6 @@ function readAsJSON(param) {
     }
     postMessage(response);
     Module.freeNativeString(ret?.nativeStringPointer);
-/*
-    */
 }
 
 function readNextShard(param) {
