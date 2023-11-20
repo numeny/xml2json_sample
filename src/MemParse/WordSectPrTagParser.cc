@@ -30,8 +30,9 @@ int WordSectPrTagParser::isLastTagSectPr(bool& isLastTagSectPr) {
     isLastTagSectPr = false;
     auto currPos = mFileContent.rfind(ShardStrForWord_WBody_EndTag);
     if (currPos == string::npos) {
-        cerr << "Err: can't find </w:body>" << endl;
-        return -1;
+        // for case "<w:body/>"
+        isLastTagSectPr = false;
+        return 0;
     }
     currPos = mFileContent.rfind("</", currPos - 1);
     if (currPos == string::npos) {
@@ -113,8 +114,8 @@ int WordSectPrTagParser::getContentBetweenStr(
     const string& endStr, bool willSearchCloseBrack) {
     auto startPos = mFileContent.find(startStr, nextSearchPos);
     if (startPos == string::npos) {
-        cerr << "Err: get sectPr's brothers: no : " << startStr << endl;
-        return -1;
+        // for case: <w:body/>
+        return -2;
     }
     if (willSearchCloseBrack) {
         startPos = mFileContent.find(StrCloseBrack, startPos);
@@ -174,6 +175,10 @@ int WordSectPrTagParser::getSectPrTagStrForWordDocument(string& outStr) {
     // get <w:body>'s previous brothers
     ret = getContentBetweenStr(0, StrDocumentStartTag,
         ShardStrForWord_WBody_StartTag, true);
+    if (ret == -2) {
+        // for case: <w:body/>
+        return 0;
+    }
     if (ret) {
         cout << "Err: get <w:sectPr>: get body's pre brothers : " << mFileName << endl;
         return ret;
@@ -188,6 +193,10 @@ int WordSectPrTagParser::getSectPrTagStrForWordDocument(string& outStr) {
     // get </w:body>'s post brothers
     ret = getContentBetweenStr(nextSearchPos,
         ShardStrForWord_WBody_EndTag, StrDocumentEndTag);
+    if (ret == -2) {
+        // for case: <w:body/>
+        return 0;
+    }
     if (ret) {
         cout << "Err: get <w:sectPr>: get body's post brothers: " << mFileName << endl;
         return ret;
