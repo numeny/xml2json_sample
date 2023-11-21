@@ -31,7 +31,6 @@ int WordSectPrTagParser::isLastTagSectPr(bool& isLastTagSectPr) {
     auto currPos = mFileContent.rfind(ShardStrForWord_WBody_EndTag);
     if (currPos == string::npos) {
         // for case "<w:body/>"
-        isLastTagSectPr = false;
         return 0;
     }
     currPos = mFileContent.rfind("</", currPos - 1);

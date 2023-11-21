@@ -41,9 +41,9 @@ add_xml2json_dependency(${TestProgram})
 add_library(${PROJECT_NAME} ${ALL_SRC})
 add_xml2json_dependency(${PROJECT_NAME})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-set_target_properties(${TestProgram} PROPERTIES LINK_FLAGS "-pg")
-set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-pg")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+# set_target_properties(${TestProgram} PROPERTIES LINK_FLAGS "-pg")
+# set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-pg")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
   file(COPY ${PROJECT_SOURCE_DIR}/test/html/pre.js DESTINATION ${PROJECT_BINARY_DIR})

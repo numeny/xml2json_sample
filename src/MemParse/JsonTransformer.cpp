@@ -136,7 +136,8 @@ void addNamespaceToTagOrAttrIfNeccessary(string& jsonStr, const string& tagOrAtt
 }
 
 // Add ", attr: [] "
-void attrs2JsonStr(string& jsonStr, const AttributeList& attributes) {
+void attrs2JsonStr(string& jsonStr, const AttributeList& attributes,
+    bool& hasAttributeOfPreserveSpace) {
     XMLSize_t totalSize = attributes.getLength();
     if (totalSize > 0) {
         // ADD ", attr: ["
@@ -151,6 +152,9 @@ void attrs2JsonStr(string& jsonStr, const AttributeList& attributes) {
         string strVal;
         XMLChToUtf8(strName, attributes.getName(idx));
         XMLChToUtf8(strVal, attributes.getValue(idx));
+        if (strName == "xml:space" && strVal == "preserve") {
+            hasAttributeOfPreserveSpace = true;
+        }
         // ADD type
         jsonStr += NamePrefixStrOfAttr;
 
@@ -170,12 +174,13 @@ void attrs2JsonStr(string& jsonStr, const AttributeList& attributes) {
 }
 
 // Add " { tag: xx, attr: [{},{}]"
-void tagAndAttrs2JsonStr(string& jsonStr, const string& tagStr, AttributeList& attributes) {
+void tagAndAttrs2JsonStr(string& jsonStr, const string& tagStr,
+    AttributeList& attributes, bool& hasAttributeOfPreserveSpace) {
     jsonStr += TagPrefixStr;
     addNamespaceToTagOrAttrIfNeccessary(jsonStr, tagStr);
 
     jsonStr += QuotationStr;
-    attrs2JsonStr(jsonStr, attributes);
+    attrs2JsonStr(jsonStr, attributes, hasAttributeOfPreserveSpace);
 }
 
 bool replaceStr(string& originalString, const string &searchString, const string& replacementString) {
@@ -188,7 +193,8 @@ bool replaceStr(string& originalString, const string &searchString, const string
 }
 
 // Add ", text: xxx "
-bool appendTextWithPrefix(string& jsonStr, const XMLCh* const textStr, bool withPrefix) {
+bool appendTextWithPrefix(string& jsonStr, const XMLCh* const textStr,
+    bool withPrefix, shared_ptr<StackElement> element) {
     if (nullptr == textStr) {
         // cout << "[Error] JsonTransformer::appendText(nullptr)" << endl;
         return false;
@@ -196,13 +202,17 @@ bool appendTextWithPrefix(string& jsonStr, const XMLCh* const textStr, bool with
 
     string strText;
     XMLChToUtf8(strText, textStr, false);
-    // reserve the space in "tx"
-    string strTextTmp(strText);
-    if (withPrefix) {
-        trim(strTextTmp);
-    }
-    if (strTextTmp.length() <= 0) {
-        return false;
+
+    if (!element || !element->mHasAttributeOfPreserveSpace) {
+        // reserve the space in "tx",
+        // when no attribute of xml:space="preserve"
+        string strTextTmp(strText);
+        if (withPrefix) {
+            trim(strTextTmp);
+        }
+        if (strTextTmp.length() <= 0) {
+            return false;
+        }
     }
 
     // handle escaped chars
@@ -288,11 +298,15 @@ void JsonTransformer::startElement(const XMLCh* const name, AttributeList& attri
 
     // Add " { tag: xx, attr: [{},{}]"
     XMLChToUtf8(tagStr, name);
-    tagAndAttrs2JsonStr(jsonStrOfThisTag, tagStr, attributes);
+
+    bool hasAttributeOfPreserveSpace = false; // has attribute: xml:space="preserve"
+    tagAndAttrs2JsonStr(jsonStrOfThisTag, tagStr,
+        attributes, hasAttributeOfPreserveSpace);
     appendJsonStream(jsonStrOfThisTag);
 
     // push stack new element;
-    shared_ptr<StackElement> newElement(new StackElement);
+    shared_ptr<StackElement> newElement(
+        new StackElement(hasAttributeOfPreserveSpace));
     mStack.push(newElement);
 
     if (mJsonTransformerLisener) {
@@ -360,15 +374,16 @@ void JsonTransformer::characters(const XMLCh* const chars, const XMLSize_t lengt
     switch (element->mStackElementState) {
         case NoContent:
             // Add ", text: xxx "
-            ret = appendTextWithPrefix(jsonStr, chars, true);
+            ret = appendTextWithPrefix(jsonStr, chars, true, element);
             break;
         case InCharacter:
             // Add "xxx"
-            ret = appendTextWithPrefix(jsonStr, chars, false);
+            ret = appendTextWithPrefix(jsonStr, chars, false, element);
             break;
         default:
             break;
     }
+
     if (ret) {
         element->mStackElementState = InCharacter;
     }

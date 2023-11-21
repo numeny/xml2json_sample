@@ -35,8 +35,12 @@ typedef enum {
 } StackElementState;
 
 struct StackElement {
-    StackElement() : mStackElementState(NoContent) {}
+    StackElement() : mStackElementState(NoContent),
+        mHasAttributeOfPreserveSpace(false) {}
+    StackElement(bool hasAttributeOfPreserveSpace) : mStackElementState(NoContent),
+        mHasAttributeOfPreserveSpace(hasAttributeOfPreserveSpace) {}
     StackElementState mStackElementState;
+    bool mHasAttributeOfPreserveSpace = false; // has attribute: xml:space="preserve"
 };
 
 // JsonTransformer accept xml's SAX input and trasform it to json string of utf8
